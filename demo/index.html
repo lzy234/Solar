@@ -1,132 +1,22 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Solar Future Console Demo</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <title>Solar Demo - 页面入口</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
-    <div class="bg-orb orb-a"></div>
-    <div class="bg-orb orb-b"></div>
-    <div class="bg-grid"></div>
-
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-badge">SOLAR</span>
-        <h1>光伏统一运营未来控制台</h1>
-      </div>
-      <nav class="topnav">
-        <a href="#dashboard">统一看板</a>
-        <a href="#alerts">告警中心</a>
-        <a href="#assistant">OpenClaw 助手</a>
-        <a href="#anomaly">异常检测</a>
-      </nav>
-    </header>
-
-    <main class="layout">
-      <section id="dashboard" class="panel hero">
-        <div>
-          <p class="kicker">阶段 A · 统一看板与告警汇聚</p>
-          <h2>跨平台电站统一视图</h2>
-          <p>
-            此页面为功能演示，无需后端。通过模拟 API 聚合结果，展示未来可见的管理界面和操作路径。
-          </p>
+  <body class="portal-body">
+    <main class="portal-wrap">
+      <section class="portal-card">
+        <p class="eyebrow">Solar Future Console</p>
+        <h1>光伏运维 Demo 2.0</h1>
+        <p class="muted">已拆分为两个页面：用户侧查看结果，运维侧查看过程与处置。</p>
+        <div class="portal-actions">
+          <a class="btn btn-primary" href="./user.html">进入用户侧</a>
+          <a class="btn btn-ghost" href="./ops.html">进入运维侧</a>
         </div>
-        <div class="station-switch" id="stationSwitch"></div>
-      </section>
-
-      <section class="panel stats">
-        <article>
-          <p>总装机容量</p>
-          <h3 id="capacityValue">--</h3>
-        </article>
-        <article>
-          <p>今日发电量</p>
-          <h3 id="energyValue">--</h3>
-        </article>
-        <article>
-          <p>实时功率</p>
-          <h3 id="powerValue">--</h3>
-        </article>
-        <article>
-          <p>告警总数</p>
-          <h3 id="alarmValue">--</h3>
-        </article>
-      </section>
-
-      <section id="alerts" class="panel two-col">
-        <div>
-          <h2>统一告警中心</h2>
-          <p class="sub">平台告警 -> 规则引擎 -> OpenClaw -> 客户通讯软件</p>
-          <div class="pipeline">
-            <span>平台告警</span>
-            <i></i>
-            <span>规则判断</span>
-            <i></i>
-            <span>OpenClaw</span>
-            <i></i>
-            <span>通讯软件</span>
-          </div>
-          <div class="toolbar">
-            <button class="chip active" data-level="all">全部</button>
-            <button class="chip" data-level="critical">严重</button>
-            <button class="chip" data-level="warning">一般</button>
-            <button class="chip" data-level="info">提示</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>电站</th>
-                  <th>等级</th>
-                  <th>告警内容</th>
-                  <th>状态</th>
-                </tr>
-              </thead>
-              <tbody id="alarmTable"></tbody>
-            </table>
-          </div>
-        </div>
-        <aside class="card stack">
-          <h3>推送模拟</h3>
-          <div id="pushLog" class="push-log"></div>
-          <button id="simulatePush" class="cta">触发一次推送流程</button>
-        </aside>
-      </section>
-
-      <section id="assistant" class="panel two-col">
-        <div>
-          <h2>OpenClaw 运营秘书</h2>
-          <p class="sub">自动整理日报 / 周报，输出关键指标与异常摘要。</p>
-          <div class="report-box" id="reportBox"></div>
-          <button id="generateReport" class="cta">生成本周运营周报</button>
-        </div>
-        <aside class="card">
-          <h3>自动化任务编排</h3>
-          <ul class="timeline">
-            <li><span>08:00</span> 拉取多平台数据</li>
-            <li><span>08:10</span> 统一字段与数据校验</li>
-            <li><span>08:20</span> 检测异常与告警分级</li>
-            <li><span>08:30</span> 发送摘要到通讯软件</li>
-          </ul>
-        </aside>
-      </section>
-
-      <section id="anomaly" class="panel">
-        <h2>异常检测（阶段 C 方向）</h2>
-        <p class="sub">数据分析优先，后续叠加轻量硬件采集能力。</p>
-        <div class="anomaly-grid" id="anomalyGrid"></div>
       </section>
     </main>
-
-    <script src="./app.js"></script>
   </body>
 </html>

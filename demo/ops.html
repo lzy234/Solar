@@ -1,0 +1,62 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar Demo - 运维侧</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">运维侧</p>
+        <h1>电站运维与告警中心</h1>
+      </div>
+      <nav class="nav-links">
+        <a href="./index.html">返回入口</a>
+        <a href="./user.html">切换到用户侧</a>
+      </nav>
+    </header>
+
+    <main class="page ops-page">
+      <section class="panel">
+        <h2>站点发电表现（近7天）</h2>
+        <p class="muted">用于比较各站点出力与理论值偏差。</p>
+        <div id="energyChart" class="bar-chart"></div>
+      </section>
+
+      <section class="panel two-col">
+        <article>
+          <h3>实时告警列表</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>站点</th>
+                  <th>等级</th>
+                  <th>告警内容</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="alarmTable"></tbody>
+            </table>
+          </div>
+        </article>
+        <article>
+          <h3>告警预测（未来24小时）</h3>
+          <ul id="predictList" class="clean-list"></ul>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h3>OpenClaw 处置流水</h3>
+        <p class="muted">展示告警分级、派单、回执闭环过程。</p>
+        <button id="simulateOps" class="btn btn-primary">模拟一次告警闭环</button>
+        <div id="opsLog" class="log-box"></div>
+      </section>
+    </main>
+
+    <script src="./ops.js"></script>
+  </body>
+</html>
