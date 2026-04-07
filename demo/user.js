@@ -5,15 +5,15 @@
     "当前无需要人工紧急介入的重大风险，建议按计划执行逆变器巡检。"
   ],
   kpis: [
-    { label: "今日发电量", value: "94.7 MWh" },
-    { label: "今日收益", value: "7.8 万元" },
-    { label: "可用率", value: "98.6%" },
-    { label: "待处理告警", value: "2 条" }
+    { label: "今日发电量", value: "94.7 MWh", trend: "+5.2% 较昨日", tone: "up" },
+    { label: "今日收益", value: "7.8 万元", trend: "+3.4% 较昨日", tone: "up" },
+    { label: "可用率", value: "98.6%", trend: "-0.2% 轻微波动", tone: "flat" },
+    { label: "待处理告警", value: "2 条", trend: "-1 条 较昨日", tone: "down" }
   ],
   stationHealth: [
-    { name: "浦东临港电站", status: "健康", detail: "逆变器在线率 100%，清洁度正常" },
-    { name: "嘉定南翔电站", status: "关注", detail: "午后出力低于理论值 6.3%" },
-    { name: "松江新桥电站", status: "健康", detail: "遮挡异常已处置，功率恢复" }
+    { name: "浦东临港电站", status: "健康", detail: "逆变器在线率 100%，清洁度正常", score: 96 },
+    { name: "嘉定南翔电站", status: "关注", detail: "午后出力低于理论值 6.3%", score: 82 },
+    { name: "松江新桥电站", status: "健康", detail: "遮挡异常已处置，功率恢复", score: 93 }
   ],
   actions: [
     "建议在明日 09:00 安排嘉定南翔电站现场巡检。",
@@ -35,10 +35,14 @@ const kpiGrid = document.getElementById("kpiGrid");
 const healthList = document.getElementById("healthList");
 const actionList = document.getElementById("actionList");
 const weeklyReport = document.getElementById("weeklyReport");
+const reportTime = document.getElementById("reportTime");
 
 function pickSummary() {
   const idx = Math.floor(Math.random() * userData.summaryPool.length);
+  assistantSummary.classList.remove("lift-in");
+  void assistantSummary.offsetWidth;
   assistantSummary.textContent = userData.summaryPool[idx];
+  assistantSummary.classList.add("lift-in");
 }
 
 function renderKpis() {
@@ -48,6 +52,7 @@ function renderKpis() {
       <article class="panel kpi-item">
         <p class="muted">${item.label}</p>
         <h3>${item.value}</h3>
+        <p class="kpi-trend ${item.tone}">${item.trend}</p>
       </article>
     `
     )
@@ -59,9 +64,14 @@ function renderHealth() {
     .map(
       (item) => `
       <div class="station-item">
-        <strong>${item.name}</strong>
-        <span class="status ${item.status === "健康" ? "good" : "warn"}">${item.status}</span>
+        <div class="station-head">
+          <strong>${item.name}</strong>
+          <span class="status ${item.status === "健康" ? "good" : "warn"}">${item.status}</span>
+        </div>
         <p class="muted">${item.detail}</p>
+        <div class="meter">
+          <span class="meter-fill" style="width:${item.score}%"></span>
+        </div>
       </div>
     `
     )
@@ -69,7 +79,16 @@ function renderHealth() {
 }
 
 function renderActions() {
-  actionList.innerHTML = userData.actions.map((item) => `<li>${item}</li>`).join("");
+  actionList.innerHTML = userData.actions
+    .map(
+      (item) => `
+      <li>
+        <span class="action-dot"></span>
+        <span>${item}</span>
+      </li>
+    `
+    )
+    .join("");
 }
 
 function bindEvents() {
@@ -78,6 +97,7 @@ function bindEvents() {
     weeklyReport.textContent = "OpenClaw 正在汇总数据...";
     setTimeout(() => {
       weeklyReport.textContent = userData.report;
+      reportTime.textContent = `最近生成时间：${new Date().toLocaleString("zh-CN", { hour12: false })}`;
     }, 700);
   });
 }
