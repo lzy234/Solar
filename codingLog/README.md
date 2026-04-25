@@ -43,6 +43,7 @@ codingLog/
 ### Feature / Mobile App
 
 - [2026-04-25-mobile-app-alert-chat-demo-upgrade.md](D:/Project/Solar/codingLog/feature/mobile-app/2026-04-25-mobile-app-alert-chat-demo-upgrade.md:1)
+- [2026-04-25-mobile-app-home-blue-theme-refresh.md](D:/Project/Solar/codingLog/feature/mobile-app/2026-04-25-mobile-app-home-blue-theme-refresh.md:1)
 - [2026-04-25-mobile-app-presentation-copy-cleanup.md](D:/Project/Solar/codingLog/feature/mobile-app/2026-04-25-mobile-app-presentation-copy-cleanup.md:1)
 
 ### Bugfix / Mobile App

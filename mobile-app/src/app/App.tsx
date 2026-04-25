@@ -1158,28 +1158,28 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-slate-950 px-5 py-5 text-white shadow-2xl shadow-sky-200/40">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.35),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(52,211,153,0.26),_transparent_30%)]" />
+            <div className="relative overflow-hidden rounded-[28px] border border-sky-100 bg-[linear-gradient(145deg,_rgba(14,165,233,0.96),_rgba(37,99,235,0.94))] px-5 py-5 text-white shadow-2xl shadow-sky-200/50">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.24),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(125,211,252,0.3),_transparent_30%)]" />
               <div className="relative">
-                <div className="mb-4 flex items-center gap-2 text-xs text-sky-100">
+                <div className="mb-4 flex items-center gap-2 text-xs text-sky-50">
                   <Sparkles className="h-4 w-4" />
                   OpenClaw Agent 正在监听异常告警流与用户提问
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
                     <p className="text-[11px] text-sky-100/80">接入电站</p>
                     <p className="mt-1 text-2xl font-black">4</p>
                   </div>
-                  <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
                     <p className="text-[11px] text-sky-100/80">活跃告警</p>
                     <p className="mt-1 text-2xl font-black">{pendingAlerts.length}</p>
                   </div>
-                  <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
                     <p className="text-[11px] text-sky-100/80">AI 建议命中</p>
                     <p className="mt-1 text-2xl font-black">92%</p>
                   </div>
                 </div>
-                <div className="mt-4 rounded-2xl bg-white/8 p-3 text-sm text-slate-100/90">
+                <div className="mt-4 rounded-2xl border border-white/16 bg-white/14 p-3 text-sm text-sky-50/95">
                   系统已把“异常检测 + 工单经验 + 对话问答”串成统一工作流，方便直接查看处置闭环。
                 </div>
               </div>
@@ -1541,7 +1541,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => handleMessageAction(message)}
-                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white"
+                          className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white px-4 py-2 text-xs font-semibold text-sky-700 shadow-sm shadow-sky-100/80"
                         >
                           {message.actionLabel}
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -1627,7 +1627,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeDetailSheets}
-              className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-sm"
+              className="fixed inset-0 z-[60] bg-sky-950/18 backdrop-blur-sm"
             />
 
             <motion.div
@@ -1660,7 +1660,7 @@ export default function App() {
               </div>
 
               <div className="h-full overflow-y-auto px-5 pb-32 pt-4">
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-300/40">
+                <div className="mb-4 rounded-[30px] border border-sky-100 bg-[linear-gradient(145deg,_rgba(14,165,233,0.94),_rgba(37,99,235,0.9))] p-5 text-white shadow-2xl shadow-sky-200/60">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.2em] text-sky-200">实时概览</p>
@@ -1669,24 +1669,24 @@ export default function App() {
                         当前发电量整体接近计划，剩余差距主要来自当前高优先级组串告警。
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 px-4 py-3 text-right">
                       <p className="text-[11px] text-slate-300">剩余差距</p>
                       <p className="mt-1 text-xl font-black">2.1%</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl bg-white/10 p-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
                       <TrendingUp className="mb-2 h-4 w-4 text-sky-300" />
                       <p className="text-[11px] text-slate-300">计划完成率</p>
                       <p className="mt-1 text-lg font-black">97.8%</p>
                     </div>
-                    <div className="rounded-2xl bg-white/10 p-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
                       <Zap className="mb-2 h-4 w-4 text-violet-300" />
                       <p className="text-[11px] text-slate-300">实时功率</p>
                       <p className="mt-1 text-lg font-black">14.3 MW</p>
                     </div>
-                    <div className="rounded-2xl bg-white/10 p-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
                       <ShieldCheck className="mb-2 h-4 w-4 text-emerald-300" />
                       <p className="text-[11px] text-slate-300">健康评分</p>
                       <p className="mt-1 text-lg font-black">98</p>
@@ -1775,7 +1775,7 @@ export default function App() {
                       closeDetailSheets();
                       switchView(1);
                     }}
-                    className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300"
+                    className="flex-1 rounded-full bg-[linear-gradient(145deg,_#0ea5e9,_#2563eb)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200"
                   >
                     让 AI 分析发电情况
                   </button>
@@ -1799,7 +1799,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAlertDetail(false)}
-              className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-sm"
+              className="fixed inset-0 z-[60] bg-sky-950/18 backdrop-blur-sm"
             />
 
             <motion.div
@@ -1840,24 +1840,24 @@ export default function App() {
                         onClick={() => setSelectedAlertId(alert.id)}
                         className={`min-w-[220px] rounded-[24px] border p-3 text-left shadow-sm transition-all ${
                           isActive
-                            ? 'border-slate-900 bg-slate-950 text-white'
+                            ? 'border-sky-200 bg-[linear-gradient(145deg,_rgba(239,246,255,1),_rgba(219,234,254,1))] text-sky-950 shadow-md shadow-sky-100/80'
                             : `bg-white ${levelMeta.border} text-slate-900`
                         }`}
                       >
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                            isActive ? 'bg-white/10 text-slate-100' : statusMeta.chip
+                            isActive ? 'border border-white bg-white text-sky-700 shadow-sm shadow-sky-100/80' : statusMeta.chip
                           }`}>
                             {statusMeta.label}
                           </span>
                           <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                            isActive ? 'bg-white/10 text-slate-100' : levelMeta.chip
+                            isActive ? 'border border-sky-100 bg-sky-100 text-sky-700' : levelMeta.chip
                           }`}>
                             {levelMeta.label}
                           </span>
                         </div>
-                        <p className={`font-bold ${isActive ? 'text-white' : 'text-slate-900'}`}>{alert.title}</p>
-                        <p className={`mt-1 text-xs ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <p className={`font-bold ${isActive ? 'text-sky-950' : 'text-slate-900'}`}>{alert.title}</p>
+                        <p className={`mt-1 text-xs ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
                           {alert.station} · {alert.time}
                         </p>
                       </button>
@@ -1867,14 +1867,14 @@ export default function App() {
               </div>
 
               <div className="h-full overflow-y-auto px-5 pb-36 pt-4">
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-300/40">
+                <div className="mb-4 rounded-[30px] border border-sky-100 bg-[linear-gradient(145deg,_rgba(14,165,233,0.95),_rgba(37,99,235,0.92))] p-5 text-white shadow-2xl shadow-sky-200/60">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${getLevelMeta(selectedAlert.level).chip}`}>
                           {getLevelMeta(selectedAlert.level).label}
                         </span>
-                        <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90">
+                        <span className="rounded-full border border-white/20 bg-white/16 px-3 py-1 text-[11px] font-semibold text-white/95">
                           AI 置信度 {selectedAlert.confidence}%
                         </span>
                       </div>
@@ -1892,17 +1892,17 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-white/10 p-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
                       <p className="text-[11px] text-slate-300">异常时长</p>
                       <p className="mt-1 text-lg font-black">{selectedAlert.duration}</p>
                     </div>
-                    <div className="rounded-2xl bg-white/10 p-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
                       <p className="text-[11px] text-slate-300">损失评估</p>
                       <p className="mt-1 text-lg font-black">{selectedAlert.estimatedLoss}</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl bg-white/10 p-3 text-sm text-slate-100">
+                  <div className="mt-4 rounded-2xl border border-white/20 bg-white/16 p-3 text-sm text-sky-50/95">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-slate-300">Push Status</p>
                     <p className="mt-1">{selectedAlert.pushStatus}</p>
                   </div>
@@ -1954,7 +1954,7 @@ export default function App() {
                       <div key={cause.title} className="rounded-[24px] border border-slate-100 bg-slate-50/90 p-4">
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <p className="font-semibold text-slate-900">{cause.title}</p>
-                          <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">
+                          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
                             {cause.confidence}
                           </span>
                         </div>
@@ -2080,7 +2080,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => syncAlertToCopilot(selectedAlert)}
-                      className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300"
+                      className="flex-1 rounded-full border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-sky-700 shadow-lg shadow-sky-100/80"
                     >
                       同步到 AI 对话
                     </button>
