@@ -129,6 +129,13 @@ const weeklyGenerationData = [
   { day: '周日', value: 95 },
 ];
 
+const stationPowerData: StationPower[] = [
+  { id: 1, name: 'Jiading Nanxiang', capacity: 24, current: 6.3, percentage: 98, status: 'excellent' },
+  { id: 2, name: 'Lingang', capacity: 18, current: 4.1, percentage: 95, status: 'good' },
+  { id: 3, name: 'Qingpu', capacity: 16, current: 2.4, percentage: 93, status: 'good' },
+  { id: 4, name: 'Jiaxing Jiangnan', capacity: 12, current: 1.5, percentage: 89, status: 'normal' },
+];
+
 const capabilityCards = [
   {
     title: '告警流总览',
@@ -434,6 +441,30 @@ const getStatusMeta = (status: AlertStatus) => {
   };
 };
 
+const getStationPowerStatusMeta = (status: StationPower['status']) => {
+  if (status === 'excellent') {
+    return {
+      label: 'Excellent',
+      chip: 'bg-emerald-100 text-emerald-700',
+      bar: 'from-emerald-400 to-green-500',
+    };
+  }
+
+  if (status === 'good') {
+    return {
+      label: 'Good',
+      chip: 'bg-sky-100 text-sky-700',
+      bar: 'from-sky-400 to-blue-500',
+    };
+  }
+
+  return {
+    label: 'Watch',
+    chip: 'bg-amber-100 text-amber-700',
+    bar: 'from-amber-400 to-orange-500',
+  };
+};
+
 const getLevelMeta = (level: AlertLevel) => {
   if (level === 'critical') {
     return {
@@ -586,6 +617,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [pendingReplyCount, setPendingReplyCount] = useState(0);
   const [showIndicator, setShowIndicator] = useState(false);
+  const [showGenerationDetail, setShowGenerationDetail] = useState(false);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(alertsSeedData[0].id);
@@ -628,6 +660,7 @@ export default function App() {
   const processingAlerts = alerts.filter(alert => alert.status === 'processing');
   const resolvedAlerts = alerts.filter(alert => alert.status === 'resolved');
   const isTyping = pendingReplyCount > 0;
+  const isDetailSheetOpen = showGenerationDetail || showAlertDetail;
 
   useEffect(() => {
     currentViewRef.current = currentView;
@@ -719,6 +752,11 @@ export default function App() {
     setViewportPosition(0, 'instant');
   };
 
+  const closeDetailSheets = () => {
+    setShowGenerationDetail(false);
+    setShowAlertDetail(false);
+  };
+
   const resetNativeViewport = () => {
     window.scrollTo(0, 0);
     document.documentElement.scrollLeft = 0;
@@ -731,7 +769,7 @@ export default function App() {
     resetSwipeState();
     currentViewRef.current = 0;
     setCurrentView(0);
-    setShowAlertDetail(false);
+    closeDetailSheets();
     setViewportResetKey(prev => prev + 1);
   };
 
@@ -822,7 +860,7 @@ export default function App() {
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (showAlertDetail || (event.pointerType === 'mouse' && event.button !== 0)) {
+    if (isDetailSheetOpen || (event.pointerType === 'mouse' && event.button !== 0)) {
       resetSwipeState();
       return;
     }
@@ -843,7 +881,7 @@ export default function App() {
   };
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
-    if (showAlertDetail) {
+    if (isDetailSheetOpen) {
       resetSwipeState();
       return;
     }
@@ -1061,7 +1099,13 @@ export default function App() {
     enqueueQuestion(message.actionQuestion);
   };
 
+  const openGenerationDetail = () => {
+    setShowAlertDetail(false);
+    setShowGenerationDetail(true);
+  };
+
   const openAlertDetail = (alertId: number) => {
+    setShowGenerationDetail(false);
     setSelectedAlertId(alertId);
     setShowAlertDetail(true);
   };
@@ -1071,7 +1115,7 @@ export default function App() {
   };
 
   const syncAlertToCopilot = (alert: AlertItem, question?: string) => {
-    setShowAlertDetail(false);
+    closeDetailSheets();
     switchView(1);
     enqueueQuestion(question ?? `分析${alert.station}${alert.title}的原因和处理步骤`);
   };
@@ -1143,17 +1187,21 @@ export default function App() {
           </motion.div>
 
           <div className="mb-6 grid grid-cols-2 gap-4">
-            <motion.div
+            <motion.button
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-slate-200/60"
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={openGenerationDetail}
+              className="rounded-3xl border border-white/70 bg-white/90 p-5 text-left shadow-lg shadow-slate-200/60"
             >
               <TrendingUp className="mb-2 h-5 w-5 text-sky-500" />
               <p className="mb-2 text-xs font-medium text-slate-500">今日发电量</p>
               <p className="text-3xl font-black text-slate-950">94.7</p>
               <p className="mt-1 text-xs font-semibold text-emerald-600">完成率 97.8%</p>
-            </motion.div>
+              <p className="mt-2 text-xs font-semibold text-sky-600">View detail</p>
+            </motion.button>
 
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -1572,6 +1620,178 @@ export default function App() {
       </motion.div>
 
       <AnimatePresence>
+        {showGenerationDetail ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeDetailSheets}
+              className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 top-16 z-[70] overflow-hidden rounded-t-[34px] bg-[linear-gradient(180deg,_rgba(248,250,252,1)_0%,_rgba(255,255,255,1)_24%,_rgba(248,250,252,1)_100%)] shadow-2xl"
+            >
+              <div className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/92 px-5 py-4 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-sky-500">
+                      Generation Detail
+                    </p>
+                    <h2 className="text-2xl font-black tracking-tight text-slate-950">Today Output</h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      94.7 MWh today · 97.8% target completion · tap outside to close
+                    </p>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    type="button"
+                    onClick={closeDetailSheets}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className="h-full overflow-y-auto px-5 pb-32 pt-4">
+                <div className="mb-4 rounded-[30px] border border-white/70 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-300/40">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-sky-200">Live Overview</p>
+                      <p className="mt-2 text-3xl font-black">94.7 MWh</p>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-200">
+                        Output is still near plan. The remaining gap is mainly from the current high-priority string alert.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
+                      <p className="text-[11px] text-slate-300">Remaining</p>
+                      <p className="mt-1 text-xl font-black">2.1%</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-2xl bg-white/10 p-3">
+                      <TrendingUp className="mb-2 h-4 w-4 text-sky-300" />
+                      <p className="text-[11px] text-slate-300">Plan Completion</p>
+                      <p className="mt-1 text-lg font-black">97.8%</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-3">
+                      <Zap className="mb-2 h-4 w-4 text-violet-300" />
+                      <p className="text-[11px] text-slate-300">Realtime Power</p>
+                      <p className="mt-1 text-lg font-black">14.3 MW</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-3">
+                      <ShieldCheck className="mb-2 h-4 w-4 text-emerald-300" />
+                      <p className="text-[11px] text-slate-300">Health Score</p>
+                      <p className="mt-1 text-lg font-black">98</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-800">7-Day Trend</h3>
+                    <span className="text-xs text-slate-400">MWh</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={weeklyGenerationData}>
+                      <defs>
+                        <linearGradient id="generationDetailGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.34} />
+                          <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: '16px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#0ea5e9"
+                        strokeWidth={3}
+                        fill="url(#generationDetailGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-800">Station Split</h3>
+                    <span className="text-xs text-slate-400">Current output / capacity</span>
+                  </div>
+                  <div className="space-y-3">
+                    {stationPowerData.map(station => {
+                      const stationMeta = getStationPowerStatusMeta(station.status);
+
+                      return (
+                        <div key={station.id} className="rounded-[24px] border border-slate-100 bg-slate-50/90 p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-slate-900">{station.name}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {station.current} MW / {station.capacity} MW
+                              </p>
+                            </div>
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${stationMeta.chip}`}>
+                              {stationMeta.label}
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-200">
+                            <div
+                              className={`h-2 rounded-full bg-gradient-to-r ${stationMeta.bar}`}
+                              style={{ width: `${station.percentage}%` }}
+                            />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                            <span>Completion</span>
+                            <span className="font-semibold text-slate-700">{station.percentage}%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-slate-200/80 bg-white/92 px-5 py-4 backdrop-blur">
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeDetailSheets();
+                      switchView(1);
+                    }}
+                    className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300"
+                  >
+                    Ask AI About Output
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeDetailSheets}
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+
         {showAlertDetail ? (
           <>
             <motion.div
