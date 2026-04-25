@@ -1200,7 +1200,7 @@ export default function App() {
               <p className="mb-2 text-xs font-medium text-slate-500">今日发电量</p>
               <p className="text-3xl font-black text-slate-950">94.7</p>
               <p className="mt-1 text-xs font-semibold text-emerald-600">完成率 97.8%</p>
-              <p className="mt-2 text-xs font-semibold text-sky-600">View detail</p>
+              <p className="mt-2 text-xs font-semibold text-sky-600">查看详情</p>
             </motion.button>
 
             <motion.div
@@ -1641,11 +1641,11 @@ export default function App() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-sky-500">
-                      Generation Detail
+                      发电详情
                     </p>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-950">Today Output</h2>
+                    <h2 className="text-2xl font-black tracking-tight text-slate-950">今日发电量</h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      94.7 MWh today · 97.8% target completion · tap outside to close
+                      今日发电量 94.7 MWh · 目标完成率 97.8% · 点击空白处关闭
                     </p>
                   </div>
                   <motion.button
@@ -1663,14 +1663,14 @@ export default function App() {
                 <div className="mb-4 rounded-[30px] border border-white/70 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-300/40">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-sky-200">Live Overview</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-sky-200">实时概览</p>
                       <p className="mt-2 text-3xl font-black">94.7 MWh</p>
                       <p className="mt-2 text-sm leading-relaxed text-slate-200">
-                        Output is still near plan. The remaining gap is mainly from the current high-priority string alert.
+                        当前发电量整体接近计划，剩余差距主要来自当前高优先级组串告警。
                       </p>
                     </div>
                     <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
-                      <p className="text-[11px] text-slate-300">Remaining</p>
+                      <p className="text-[11px] text-slate-300">剩余差距</p>
                       <p className="mt-1 text-xl font-black">2.1%</p>
                     </div>
                   </div>
@@ -1678,17 +1678,17 @@ export default function App() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-2xl bg-white/10 p-3">
                       <TrendingUp className="mb-2 h-4 w-4 text-sky-300" />
-                      <p className="text-[11px] text-slate-300">Plan Completion</p>
+                      <p className="text-[11px] text-slate-300">计划完成率</p>
                       <p className="mt-1 text-lg font-black">97.8%</p>
                     </div>
                     <div className="rounded-2xl bg-white/10 p-3">
                       <Zap className="mb-2 h-4 w-4 text-violet-300" />
-                      <p className="text-[11px] text-slate-300">Realtime Power</p>
+                      <p className="text-[11px] text-slate-300">实时功率</p>
                       <p className="mt-1 text-lg font-black">14.3 MW</p>
                     </div>
                     <div className="rounded-2xl bg-white/10 p-3">
                       <ShieldCheck className="mb-2 h-4 w-4 text-emerald-300" />
-                      <p className="text-[11px] text-slate-300">Health Score</p>
+                      <p className="text-[11px] text-slate-300">健康评分</p>
                       <p className="mt-1 text-lg font-black">98</p>
                     </div>
                   </div>
@@ -1696,7 +1696,7 @@ export default function App() {
 
                 <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-800">7-Day Trend</h3>
+                    <h3 className="text-sm font-bold text-slate-800">近 7 日趋势</h3>
                     <span className="text-xs text-slate-400">MWh</span>
                   </div>
                   <ResponsiveContainer width="100%" height={220}>
@@ -1730,8 +1730,8 @@ export default function App() {
 
                 <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-800">Station Split</h3>
-                    <span className="text-xs text-slate-400">Current output / capacity</span>
+                    <h3 className="text-sm font-bold text-slate-800">电站拆分</h3>
+                    <span className="text-xs text-slate-400">当前出力 / 装机容量</span>
                   </div>
                   <div className="space-y-3">
                     {stationPowerData.map(station => {
@@ -1757,7 +1757,7 @@ export default function App() {
                             />
                           </div>
                           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                            <span>Completion</span>
+                            <span>完成率</span>
                             <span className="font-semibold text-slate-700">{station.percentage}%</span>
                           </div>
                         </div>
@@ -1777,14 +1777,14 @@ export default function App() {
                     }}
                     className="flex-1 rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300"
                   >
-                    Ask AI About Output
+                    让 AI 分析发电情况
                   </button>
                   <button
                     type="button"
                     onClick={closeDetailSheets}
                     className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
                   >
-                    Close
+                    关闭
                   </button>
                 </div>
               </div>
