@@ -9,6 +9,8 @@ codingLog/
 ├─ README.md
 ├─ TEMPLATE.md
 ├─ AI-WORKFLOW.md
+├─ feature/
+│  └─ mobile-app/
 └─ bugfix/
    └─ mobile-app/
 ```
@@ -37,6 +39,10 @@ codingLog/
 - `后续注意事项`
 
 ## 当前索引
+
+### Feature / Mobile App
+
+- [2026-04-25-mobile-app-alert-chat-demo-upgrade.md](D:/Project/Solar/codingLog/feature/mobile-app/2026-04-25-mobile-app-alert-chat-demo-upgrade.md:1)
 
 ### Bugfix / Mobile App
 
