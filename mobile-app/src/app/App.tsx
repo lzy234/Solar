@@ -1417,45 +1417,45 @@ export default function App() {
         </div>
 
         <div className="min-w-screen flex h-full flex-col bg-[linear-gradient(180deg,_rgba(248,250,252,1)_0%,_rgba(255,255,255,1)_18%,_rgba(248,250,252,1)_100%)]">
-          <div className="border-b border-slate-200/80 bg-white/90 px-4 py-4 backdrop-blur">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="border-b border-slate-200/80 bg-white/90 px-4 pt-3 pb-2.5 backdrop-blur">
+            <div className="mb-2.5 flex items-start justify-between gap-2.5">
               <div>
-                <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-[11px] font-semibold text-sky-700">
-                  <Bot className="h-3.5 w-3.5" />
+                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-sky-100 bg-sky-50/90 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-sky-700">
+                  <Bot className="h-3 w-3" />
                   OpenClaw 运维副驾
                 </div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-950">AI 对话页</h2>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                <h2 className="text-[22px] font-black leading-tight tracking-tight text-slate-950">AI 对话页</h2>
+                <p className="mt-1 max-w-[15.5rem] text-[11px] leading-5 text-slate-500">
                   把实时状态、异常诊断、日报草稿和工单建议放进一个对话流里直接处理。
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => openAlertDetail(selectedAlert.id)}
-                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm"
+                className="shrink-0 rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm shadow-slate-200/70"
               >
                 看告警详情
               </button>
             </div>
 
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-[11px] text-slate-400">活跃告警</p>
-                <p className="text-sm font-black text-amber-600">{pendingAlerts.length}</p>
+            <div className="mb-2.5 grid grid-cols-2 gap-2">
+              <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 shadow-sm shadow-slate-100/60">
+                <p className="text-[10px] text-slate-400">活跃告警</p>
+                <p className="text-xs font-black text-amber-600">{pendingAlerts.length}</p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-[11px] text-slate-400">默认关注</p>
-                <p className="text-sm font-black text-slate-900">{selectedAlert.station}</p>
+              <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 shadow-sm shadow-slate-100/60">
+                <p className="text-[10px] text-slate-400">默认关注</p>
+                <p className="text-xs font-black text-slate-900">{selectedAlert.station}</p>
               </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1" data-swipe-ignore="true">
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5" data-swipe-ignore="true">
               {quickPrompts.map(prompt => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => enqueueQuestion(prompt)}
-                  className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm"
+                  className="shrink-0 rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm shadow-slate-100"
                 >
                   {prompt}
                 </button>
