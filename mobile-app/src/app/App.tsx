@@ -1,6 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type TouchEvent as ReactTouchEvent,
+} from 'react';
 import { flushSync } from 'react-dom';
-import { AnimatePresence, motion, type PanInfo } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   Area,
   AreaChart,
@@ -17,19 +24,16 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowRight,
-  Battery,
   Bot,
   CheckCircle,
   ChevronRight,
   ClipboardList,
   Clock,
   FileText,
-  Gauge,
   MapPin,
   Send,
   ShieldCheck,
   Sparkles,
-  Sun,
   TrendingUp,
   X,
   Zap,
@@ -570,6 +574,11 @@ const matchAlertByQuestion = (question: string, alerts: AlertItem[], fallback: A
   return hit ?? fallback;
 };
 
+const SWIPE_INTENT_LOCK_DISTANCE = 14;
+const SWIPE_SWITCH_THRESHOLD_RATIO = 0.18;
+const SWIPE_SWITCH_VELOCITY = 0.5;
+const SWIPE_EDGE_RESISTANCE = 0.35;
+
 export default function App() {
   const [currentView, setCurrentView] = useState(0);
   const [viewportResetKey, setViewportResetKey] = useState(0);
@@ -578,19 +587,39 @@ export default function App() {
   const [pendingReplyCount, setPendingReplyCount] = useState(0);
   const [showIndicator, setShowIndicator] = useState(false);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
+  const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(alertsSeedData[0].id);
   const [alerts, setAlerts] = useState<AlertItem[]>(alertsSeedData);
+  const viewportShellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const nextMessageIdRef = useRef(3);
+  const currentViewRef = useRef(0);
   const indicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const swipeStateRef = useRef({
+  const swipeStateRef = useRef<{
+    pointerId: number | null;
+    startX: number;
+    startY: number;
+    deltaX: number;
+    deltaY: number;
+    lastX: number;
+    lastTime: number;
+    velocityX: number;
+    isPointerDown: boolean;
+    isSwiping: boolean;
+    ignore: boolean;
+  }>({
+    pointerId: null,
     startX: 0,
     startY: 0,
     deltaX: 0,
     deltaY: 0,
-    isTracking: false,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    isPointerDown: false,
+    isSwiping: false,
     ignore: false,
   });
 
@@ -599,6 +628,10 @@ export default function App() {
   const processingAlerts = alerts.filter(alert => alert.status === 'processing');
   const resolvedAlerts = alerts.filter(alert => alert.status === 'resolved');
   const isTyping = pendingReplyCount > 0;
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
 
   const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
     const viewport = messagesViewportRef.current;
@@ -639,24 +672,51 @@ export default function App() {
     indicatorTimeout.current = setTimeout(() => setShowIndicator(false), 2000);
   };
 
-  const switchView = (nextView: number) => {
+  const getViewportWidth = () => viewportShellRef.current?.clientWidth ?? window.innerWidth ?? 1;
+
+  const setViewportPosition = (x: number, mode: 'drag' | 'snap' | 'instant' = 'instant') => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.style.setProperty(
+      'transition',
+      mode === 'snap' ? 'transform 460ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+    );
+    viewport.style.setProperty('transform', `translate3d(${x}px, 0, 0)`);
+  };
+
+  const snapViewportToView = (view: number, immediate = false) => {
+    setViewportPosition(-view * getViewportWidth(), immediate ? 'instant' : 'snap');
+  };
+
+  const switchView = (nextView: number, immediate = false) => {
+    currentViewRef.current = nextView;
     setCurrentView(nextView);
+    snapViewportToView(nextView, immediate);
     showIndicatorTemporarily();
   };
 
   const resetSwipeState = () => {
+    setIsSwipeDragging(false);
     swipeStateRef.current = {
+      pointerId: null,
       startX: 0,
       startY: 0,
       deltaX: 0,
       deltaY: 0,
-      isTracking: false,
+      lastX: 0,
+      lastTime: 0,
+      velocityX: 0,
+      isPointerDown: false,
+      isSwiping: false,
       ignore: false,
     };
   };
 
   const forceViewportToDashboard = () => {
-    viewportRef.current?.style.setProperty('transform', 'translateX(0px)');
+    setViewportPosition(0, 'instant');
   };
 
   const resetNativeViewport = () => {
@@ -669,6 +729,7 @@ export default function App() {
 
   const applyDashboardState = () => {
     resetSwipeState();
+    currentViewRef.current = 0;
     setCurrentView(0);
     setShowAlertDetail(false);
     setViewportResetKey(prev => prev + 1);
@@ -695,6 +756,28 @@ export default function App() {
   useLayoutEffect(() => {
     resetToDashboard();
   }, []);
+
+  useLayoutEffect(() => {
+    const syncViewport = () => {
+      if (swipeStateRef.current.isSwiping) {
+        return;
+      }
+
+      snapViewportToView(currentViewRef.current, true);
+    };
+
+    syncViewport();
+
+    const shell = viewportShellRef.current;
+    const resizeObserver = shell && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncViewport) : null;
+    resizeObserver?.observe(shell);
+    window.addEventListener('resize', syncViewport);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', syncViewport);
+    };
+  }, [viewportResetKey]);
 
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
@@ -732,19 +815,31 @@ export default function App() {
     }
 
     return Boolean(
-      target.closest('input, textarea, button, a, [role="button"], [data-swipe-ignore="true"]')
+      target.closest(
+        'input, textarea, button, a, [role="button"], [contenteditable="true"], [data-swipe-ignore="true"]'
+      )
     );
   };
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 100;
-    if (info.offset.x < -threshold && currentView === 0) {
-      switchView(1);
-    } else if (info.offset.x > threshold && currentView === 1) {
-      switchView(0);
-    } else {
-      showIndicatorTemporarily();
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (showAlertDetail || (event.pointerType === 'mouse' && event.button !== 0)) {
+      resetSwipeState();
+      return;
     }
+
+    swipeStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      deltaX: 0,
+      deltaY: 0,
+      lastX: event.clientX,
+      lastTime: performance.now(),
+      velocityX: 0,
+      isPointerDown: true,
+      isSwiping: false,
+      ignore: shouldIgnoreSwipeTarget(event.target),
+    };
   };
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -759,17 +854,66 @@ export default function App() {
     }
 
     swipeStateRef.current = {
+      pointerId: null,
       startX: touch.clientX,
       startY: touch.clientY,
       deltaX: 0,
       deltaY: 0,
-      isTracking: true,
+      lastX: touch.clientX,
+      lastTime: performance.now(),
+      velocityX: 0,
+      isPointerDown: true,
+      isSwiping: false,
       ignore: shouldIgnoreSwipeTarget(event.target),
     };
   };
 
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const swipeState = swipeStateRef.current;
+    if (!swipeState.isPointerDown || swipeState.pointerId !== event.pointerId || swipeState.ignore) {
+      return;
+    }
+
+    const deltaX = event.clientX - swipeState.startX;
+    const deltaY = event.clientY - swipeState.startY;
+    const now = performance.now();
+    const elapsed = Math.max(now - swipeState.lastTime, 1);
+
+    swipeState.deltaX = deltaX;
+    swipeState.deltaY = deltaY;
+    swipeState.velocityX = (event.clientX - swipeState.lastX) / elapsed;
+    swipeState.lastX = event.clientX;
+    swipeState.lastTime = now;
+
+    if (!swipeState.isSwiping) {
+      if (Math.abs(deltaX) < SWIPE_INTENT_LOCK_DISTANCE && Math.abs(deltaY) < SWIPE_INTENT_LOCK_DISTANCE) {
+        return;
+      }
+
+      if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
+        resetSwipeState();
+        return;
+      }
+
+      swipeState.isSwiping = true;
+      setIsSwipeDragging(true);
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+
+    event.preventDefault();
+
+    // Add resistance at the edges so the panel keeps following the pointer without overshooting.
+    const isPullingPastStart = currentViewRef.current === 0 && deltaX > 0;
+    const isPullingPastEnd = currentViewRef.current === 1 && deltaX < 0;
+    const resistedDelta =
+      isPullingPastStart || isPullingPastEnd ? deltaX * SWIPE_EDGE_RESISTANCE : deltaX;
+
+    setViewportPosition(-currentViewRef.current * getViewportWidth() + resistedDelta, 'drag');
+  };
+
   const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
-    if (!swipeStateRef.current.isTracking || swipeStateRef.current.ignore) {
+    const swipeState = swipeStateRef.current;
+    if (!swipeState.isPointerDown || swipeState.pointerId !== null || swipeState.ignore) {
       return;
     }
 
@@ -778,36 +922,107 @@ export default function App() {
       return;
     }
 
-    const deltaX = touch.clientX - swipeStateRef.current.startX;
-    const deltaY = touch.clientY - swipeStateRef.current.startY;
+    const deltaX = touch.clientX - swipeState.startX;
+    const deltaY = touch.clientY - swipeState.startY;
+    const now = performance.now();
+    const elapsed = Math.max(now - swipeState.lastTime, 1);
 
-    swipeStateRef.current.deltaX = deltaX;
-    swipeStateRef.current.deltaY = deltaY;
+    swipeState.deltaX = deltaX;
+    swipeState.deltaY = deltaY;
+    swipeState.velocityX = (touch.clientX - swipeState.lastX) / elapsed;
+    swipeState.lastX = touch.clientX;
+    swipeState.lastTime = now;
 
-    if (Math.abs(deltaX) > 24 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-      event.preventDefault();
+    if (!swipeState.isSwiping) {
+      if (Math.abs(deltaX) < SWIPE_INTENT_LOCK_DISTANCE && Math.abs(deltaY) < SWIPE_INTENT_LOCK_DISTANCE) {
+        return;
+      }
+
+      if (Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
+        resetSwipeState();
+        return;
+      }
+
+      swipeState.isSwiping = true;
+      setIsSwipeDragging(true);
+    }
+
+    event.preventDefault();
+
+    const isPullingPastStart = currentViewRef.current === 0 && deltaX > 0;
+    const isPullingPastEnd = currentViewRef.current === 1 && deltaX < 0;
+    const resistedDelta =
+      isPullingPastStart || isPullingPastEnd ? deltaX * SWIPE_EDGE_RESISTANCE : deltaX;
+
+    setViewportPosition(-currentViewRef.current * getViewportWidth() + resistedDelta, 'drag');
+  };
+
+  const completeSwipe = ({
+    pointerId = null,
+    releaseTarget = null,
+    shouldSnap = true,
+  }: {
+    pointerId?: number | null;
+    releaseTarget?: HTMLDivElement | null;
+    shouldSnap?: boolean;
+  } = {}) => {
+    const swipeState = swipeStateRef.current;
+    if (pointerId !== null && swipeState.pointerId !== pointerId) {
+      return;
+    }
+
+    const wasSwiping = swipeState.isSwiping;
+    const deltaX = swipeState.deltaX;
+    const velocityX = swipeState.velocityX;
+    const activeView = currentViewRef.current;
+
+    if (releaseTarget && pointerId !== null && releaseTarget.hasPointerCapture(pointerId)) {
+      releaseTarget.releasePointerCapture(pointerId);
+    }
+
+    resetSwipeState();
+
+    if (!wasSwiping || !shouldSnap) {
+      if (wasSwiping && !shouldSnap) {
+        snapViewportToView(activeView);
+      }
+
+      return;
+    }
+
+    const threshold = Math.min(140, getViewportWidth() * SWIPE_SWITCH_THRESHOLD_RATIO);
+    let nextView = activeView;
+
+    if (
+      activeView === 0 &&
+      (deltaX <= -threshold || (deltaX <= -threshold * 0.5 && velocityX <= -SWIPE_SWITCH_VELOCITY))
+    ) {
+      nextView = 1;
+    } else if (
+      activeView === 1 &&
+      (deltaX >= threshold || (deltaX >= threshold * 0.5 && velocityX >= SWIPE_SWITCH_VELOCITY))
+    ) {
+      nextView = 0;
+    }
+
+    if (nextView !== activeView) {
+      switchView(nextView);
+    } else {
+      snapViewportToView(activeView);
+      showIndicatorTemporarily();
     }
   };
 
-  const handleTouchEnd = () => {
-    const { deltaX, deltaY, isTracking, ignore } = swipeStateRef.current;
-    resetSwipeState();
+  const finishPointerSwipe = (event: ReactPointerEvent<HTMLDivElement>, shouldSnap = true) => {
+    completeSwipe({
+      pointerId: event.pointerId,
+      releaseTarget: event.currentTarget,
+      shouldSnap,
+    });
+  };
 
-    if (!isTracking || ignore) {
-      return;
-    }
-
-    if (Math.abs(deltaX) < 72 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
-      return;
-    }
-
-    if (deltaX < 0 && currentView === 0) {
-      switchView(1);
-    } else if (deltaX > 0 && currentView === 1) {
-      switchView(0);
-    } else {
-      showIndicatorTemporarily();
-    }
+  const finishTouchSwipe = (shouldSnap = true) => {
+    completeSwipe({ shouldSnap });
   };
 
   const enqueueQuestion = (question: string) => {
@@ -862,25 +1077,24 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_38%),linear-gradient(180deg,_#f7fbff_0%,_#eef5ff_48%,_#f8fafc_100%)]">
-      <motion.div
+    <div
+      ref={viewportShellRef}
+      className="h-screen w-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_38%),linear-gradient(180deg,_#f7fbff_0%,_#eef5ff_48%,_#f8fafc_100%)]"
+    >
+      <div
         key={viewportResetKey}
         ref={viewportRef}
-        className="flex h-full"
-        initial={false}
-        animate={{ x: `-${currentView * 100}vw` }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        drag="x"
-        dragDirectionLock
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        dragMomentum={false}
-        onDragEnd={handleDragEnd}
+        data-testid="swipe-viewport"
+        className={`flex h-full will-change-transform ${isSwipeDragging ? 'select-none md:cursor-grabbing' : 'md:cursor-grab'}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={event => finishPointerSwipe(event)}
+        onPointerCancel={event => finishPointerSwipe(event, false)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={resetSwipeState}
-        style={{ touchAction: 'pan-y' }}
+        onTouchEnd={() => finishTouchSwipe()}
+        onTouchCancel={() => finishTouchSwipe(false)}
+        style={{ touchAction: 'pan-y pinch-zoom' }}
       >
         <div className="min-w-screen h-full overflow-y-auto px-5 pb-24 pt-6">
           <motion.div
@@ -1340,7 +1554,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -1658,30 +1872,6 @@ export default function App() {
         ) : null}
       </AnimatePresence>
 
-      <div className="pointer-events-none fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-lg backdrop-blur">
-        <div className="grid grid-cols-4 gap-2 text-center text-[11px]">
-          <div>
-            <Sun className="mx-auto mb-1 h-4 w-4 text-sky-500" />
-            <p className="font-semibold text-slate-500">功率</p>
-            <p className="font-black text-slate-900">14.3</p>
-          </div>
-          <div>
-            <Battery className="mx-auto mb-1 h-4 w-4 text-emerald-500" />
-            <p className="font-semibold text-slate-500">效率</p>
-            <p className="font-black text-slate-900">97.4%</p>
-          </div>
-          <div>
-            <Gauge className="mx-auto mb-1 h-4 w-4 text-violet-500" />
-            <p className="font-semibold text-slate-500">负载</p>
-            <p className="font-black text-slate-900">76%</p>
-          </div>
-          <div>
-            <Activity className="mx-auto mb-1 h-4 w-4 text-amber-500" />
-            <p className="font-semibold text-slate-500">告警</p>
-            <p className="font-black text-slate-900">{pendingAlerts.length}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -48,7 +48,9 @@ codingLog/
 ### Bugfix / Mobile App
 
 - [2026-04-25-mobile-app-swipe-gesture-fix.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-swipe-gesture-fix.md:1)
+- [2026-04-25-mobile-app-drag-follow-polish.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-drag-follow-polish.md:1)
 - [2026-04-25-mobile-app-default-start-page-fix.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-default-start-page-fix.md:1)
+- [2026-04-25-mobile-app-bottom-floating-metrics-removal.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-bottom-floating-metrics-removal.md:1)
 
 ## 维护要求
 
