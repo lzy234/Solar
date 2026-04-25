@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type TouchEvent as ReactTouchEvent } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Send, Activity, AlertCircle, Zap, TrendingUp, X, ChevronRight, Clock, MapPin, CheckCircle, AlertTriangle, Sun, Battery, Gauge } from 'lucide-react';
@@ -90,19 +90,29 @@ interface Message {
 
 export default function App() {
   const [currentView, setCurrentView] = useState(0);
-  const [messageIdCounter, setMessageIdCounter] = useState(3);
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'ai', text: '您好！我是您的 Solar AI 助手。运维看板已收缩至上方,您可以随时查阅。' },
     { id: 2, type: 'ai', text: '您可以问我:"分析一下嘉定电站的告警原因",或者"帮我生成今日运维报告"。' },
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [pendingReplyCount, setPendingReplyCount] = useState(0);
   const [showIndicator, setShowIndicator] = useState(false);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
   const [showPowerDetail, setShowPowerDetail] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>(alertsData);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const indicatorTimeout = useRef<NodeJS.Timeout>();
+  const nextMessageIdRef = useRef(3);
+  const indicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const replyTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const swipeStateRef = useRef({
+    startX: 0,
+    startY: 0,
+    deltaX: 0,
+    deltaY: 0,
+    isTracking: false,
+    ignore: false,
+  });
+  const isTyping = pendingReplyCount > 0;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,14 +122,115 @@ export default function App() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      if (indicatorTimeout.current) {
+        clearTimeout(indicatorTimeout.current);
+      }
+
+      replyTimeoutsRef.current.forEach(clearTimeout);
+      replyTimeoutsRef.current = [];
+    };
+  }, []);
+
+  const switchView = (nextView: number) => {
+    setCurrentView(nextView);
+    showIndicatorTemporarily();
+  };
+
+  const resetSwipeState = () => {
+    swipeStateRef.current = {
+      startX: 0,
+      startY: 0,
+      deltaX: 0,
+      deltaY: 0,
+      isTracking: false,
+      ignore: false,
+    };
+  };
+
+  const shouldIgnoreSwipeTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    return Boolean(
+      target.closest('input, textarea, button, a, [role="button"], [data-swipe-ignore="true"]')
+    );
+  };
+
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 100;
     if (info.offset.x < -threshold && currentView === 0) {
-      setCurrentView(1);
+      switchView(1);
     } else if (info.offset.x > threshold && currentView === 1) {
-      setCurrentView(0);
+      switchView(0);
+    } else {
+      showIndicatorTemporarily();
     }
-    showIndicatorTemporarily();
+  };
+
+  const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (showAlertDetail || showPowerDetail) {
+      resetSwipeState();
+      return;
+    }
+
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    swipeStateRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      deltaX: 0,
+      deltaY: 0,
+      isTracking: true,
+      ignore: shouldIgnoreSwipeTarget(event.target),
+    };
+  };
+
+  const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (!swipeStateRef.current.isTracking || swipeStateRef.current.ignore) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    const deltaX = touch.clientX - swipeStateRef.current.startX;
+    const deltaY = touch.clientY - swipeStateRef.current.startY;
+
+    swipeStateRef.current.deltaX = deltaX;
+    swipeStateRef.current.deltaY = deltaY;
+
+    if (Math.abs(deltaX) > 24 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      event.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const { deltaX, deltaY, isTracking, ignore } = swipeStateRef.current;
+    resetSwipeState();
+
+    if (!isTracking || ignore) {
+      return;
+    }
+
+    if (Math.abs(deltaX) < 72 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
+      return;
+    }
+
+    if (deltaX < 0 && currentView === 0) {
+      switchView(1);
+    } else if (deltaX > 0 && currentView === 1) {
+      switchView(0);
+    } else {
+      showIndicatorTemporarily();
+    }
   };
 
   const showIndicatorTemporarily = () => {
@@ -132,22 +243,26 @@ export default function App() {
     const text = inputValue.trim();
     if (!text) return;
 
-    setMessages(prev => [...prev, { id: messageIdCounter, type: 'user', text }]);
-    setMessageIdCounter(prev => prev + 1);
-    setInputValue('');
-    setIsTyping(true);
+    const userMessageId = nextMessageIdRef.current++;
+    const replyMessageId = nextMessageIdRef.current++;
 
-    setTimeout(() => {
-      setIsTyping(false);
+    setMessages(prev => [...prev, { id: userMessageId, type: 'user', text }]);
+    setInputValue('');
+    setPendingReplyCount(prev => prev + 1);
+
+    const replyTimeout = setTimeout(() => {
+      setPendingReplyCount(prev => Math.max(prev - 1, 0));
       let reply = "收到,正在为您调取实时数据...";
       if (text.includes("告警")) {
         reply = "深度分析显示:嘉定电站的电流波动由局部阴影遮挡引起,由于今日光照强烈,波动在安全范围内,已为您标记为'待观察'。";
       } else if (text.includes("报告") || text.includes("摘要")) {
         reply = "好的,为您汇总今日运营数据:截止目前发电 94.7MWh,全站效率 98.2%,无重大故障风险。";
       }
-      setMessages(prev => [...prev, { id: messageIdCounter + 1, type: 'ai', text: reply }]);
-      setMessageIdCounter(prev => prev + 2);
+      setMessages(prev => [...prev, { id: replyMessageId, type: 'ai', text: reply }]);
+      replyTimeoutsRef.current = replyTimeoutsRef.current.filter(timeout => timeout !== replyTimeout);
     }, 1200);
+
+    replyTimeoutsRef.current.push(replyTimeout);
   };
 
   const handleAlertStatus = (alertId: number, newStatus: Alert['status']) => {
@@ -165,12 +280,22 @@ export default function App() {
         animate={{ x: `-${currentView * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         drag="x"
+        dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
+        dragMomentum={false}
         onDragEnd={handleDragEnd}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={resetSwipeState}
+        style={{ touchAction: 'pan-y' }}
       >
         {/* Dashboard View */}
-        <div className="min-w-screen h-full px-5 pt-6 pb-24 overflow-y-auto">
+        <div
+          className="min-w-screen h-full px-5 pt-6 pb-24 overflow-y-auto"
+          style={{ touchAction: 'pan-y' }}
+        >
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -371,7 +496,10 @@ export default function App() {
         </div>
 
         {/* Chat View */}
-        <div className="min-w-screen h-full flex flex-col bg-white">
+        <div
+          className="min-w-screen h-full flex flex-col bg-white"
+          style={{ touchAction: 'pan-y' }}
+        >
           {/* Compact Header */}
           <div className="px-4 py-3 bg-slate-50/90 backdrop-blur-xl border-b border-slate-200 flex gap-2.5 overflow-x-auto scrollbar-hide">
             <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm whitespace-nowrap">
@@ -393,7 +521,10 @@ export default function App() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+          <div
+            className="flex-1 overflow-y-auto px-4 py-6 space-y-5"
+            style={{ touchAction: 'pan-y' }}
+          >
             <AnimatePresence>
               {messages.map((msg) => (
                 <motion.div
@@ -453,7 +584,12 @@ export default function App() {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="问问我关于电站的情况..."
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-5 py-3 text-sm outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all"
               />
