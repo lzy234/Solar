@@ -127,8 +127,8 @@ const weeklyGenerationData = [
 
 const capabilityCards = [
   {
-    title: '告警流展示',
-    description: '异常、建议动作、工单经验统一收在一个演示页里，方便客户理解处理闭环。',
+    title: '告警流总览',
+    description: '异常、建议动作、工单经验统一收在同一视图里，方便快速查看处理闭环。',
     icon: AlertCircle,
     accent: 'from-amber-400 to-orange-500',
   },
@@ -140,7 +140,7 @@ const capabilityCards = [
   },
   {
     title: '知识库辅助',
-    description: '通过历史工单命中结果解释建议来源，即使现在不接后端也能清楚展示价值。',
+    description: '通过历史工单命中结果解释建议来源，即使现在不接后端也能清楚看到判断依据。',
     icon: ClipboardList,
     accent: 'from-emerald-400 to-green-600',
   },
@@ -188,7 +188,7 @@ const alertsSeedData: AlertItem[] = [
     actions: [
       '10 分钟内到现场确认是否存在遮挡、污损或明显热斑。',
       '采集逆变器组串电流截图与组件热像图，作为后续工单附件。',
-      '若异常持续超过 30 分钟，直接转派二线工程师并生成客户说明。',
+      '若异常持续超过 30 分钟，直接转派二线工程师并生成处理摘要。',
     ],
     timeline: [
       {
@@ -236,7 +236,7 @@ const alertsSeedData: AlertItem[] = [
     relatedQuestions: [
       '分析这条告警的原因',
       '给我一份现场处理步骤',
-      '生成客户说明话术',
+      '整理一段处理摘要',
     ],
   },
   {
@@ -329,7 +329,7 @@ const alertsSeedData: AlertItem[] = [
     time: '08:58',
     status: 'resolved',
     description: '2# 汇流箱内部温度在早间启动阶段较昨日均值偏高 3.2°C，当前已回落。',
-    aiSummary: '该异常已恢复，更像环境温度叠加早间启动负载造成的短时抬升。建议继续留档，不必作为客户高优先级问题呈现。',
+    aiSummary: '该异常已恢复，更像环境温度叠加早间启动负载造成的短时抬升。建议继续留档，无需作为高优先级事件处理。',
     suggestion: '保留趋势记录，在下次检修时清洁风道并复核温感探头。',
     confidence: 78,
     duration: '持续 9 分钟',
@@ -376,7 +376,7 @@ const alertsSeedData: AlertItem[] = [
       { time: '09:10', current: 31.6, peer: 31.0 },
     ],
     relatedQuestions: [
-      '这条告警是否需要客户可见',
+      '这条告警当前优先级高吗',
       '解释为什么已经恢复',
     ],
   },
@@ -387,8 +387,8 @@ const initialMessages: Message[] = [
     id: 1,
     type: 'ai',
     title: 'OpenClaw 运维副驾已就绪',
-    text: '当前为纯前端演示模式，已模拟接入多电站数据、告警流、工单经验与 AI 建议输出。',
-    tags: ['多电站聚合', '前端 Demo', '无需后端'],
+    text: '当前为前端模拟环境，已接入多电站数据、告警流、工单经验与 AI 建议输出。',
+    tags: ['多电站聚合', '前端模拟', '无需后端'],
   },
   {
     id: 2,
@@ -403,7 +403,7 @@ const quickPrompts = [
   '分析嘉定南翔电站当前告警原因',
   '给我一份现场处理步骤',
   '生成今日运维日报摘要',
-  '整理一段客户说明话术',
+  '整理一段处理摘要',
 ];
 
 const getStatusMeta = (status: AlertStatus) => {
@@ -480,33 +480,33 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
   const pendingCount = alerts.filter(item => item.status === 'pending').length;
   const criticalCount = alerts.filter(item => item.status === 'pending' && item.level === 'critical').length;
 
-  if (/(日报|周报|月报|报告|摘要)/.test(question)) {
+  if (/(日报|周报|月报|报告)/.test(question)) {
     return {
       type: 'ai',
       title: '今日运维摘要草稿',
-      text: '我已经按客户更容易理解的方式，把当前电站状态、告警风险和下一步动作整合成一段摘要。',
+      text: '我已经把当前电站状态、告警风险和下一步动作整合成一段摘要。',
       sections: [
         `发电概览：今日累计发电 94.7 MWh，综合完成率 97.8%，4 座电站整体运行平稳。`,
         `告警概览：当前 ${pendingCount} 条待处理告警，其中高优先级 ${criticalCount} 条，重点关注 ${alert.station} 的 ${alert.title}。`,
         `建议结论：先推动现场确认 ${alert.device}，同时继续观察临港电站通讯链路，已解决类异常仅做留档。`,
       ],
-      tags: ['日报草稿', '适合客户演示', '纯前端模拟'],
+      tags: ['日报草稿', '运行概览', '纯前端模拟'],
       actionLabel: '继续生成工单摘要',
       actionQuestion: '给我一份现场处理步骤',
     };
   }
 
-  if (/(客户|汇报|说明|话术)/.test(question)) {
+  if (/(处理摘要|说明|话术)/.test(question)) {
     return {
       type: 'ai',
-      title: '客户说明话术',
-      text: '下面这段可以直接用于演示或同步客户，语气会比内部运维描述更克制。',
+      title: '异常处理摘要',
+      text: '下面是基于当前告警状态生成的简要处理摘要。',
       sections: [
         `当前系统已识别到 ${alert.station}${alert.device} 的异常波动，并已自动推送给运维团队。`,
         `从现有数据看，问题更接近局部组件或接线侧异常，暂未发现整站级风险，平台已给出处置建议并跟踪恢复情况。`,
-        `若现场复核确认需要进一步处理，系统可继续生成工单建议和日报摘要，方便您统一对外同步。`,
+        `若现场复核确认需要进一步处理，系统可继续生成工单建议和日报摘要，方便后续继续跟进。`,
       ],
-      tags: ['客户视角', '自动生成', '可复制演示'],
+      tags: ['运行摘要', '自动生成', '可直接复用'],
       actionLabel: '返回处理步骤',
       actionQuestion: '给我一份现场处理步骤',
     };
@@ -523,8 +523,8 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
         `第三步：若 ${alert.duration} 仍未恢复，则转派二线工程师，并附上“${alert.estimatedLoss}”作为优先级依据。`,
       ],
       tags: [`置信度 ${alert.confidence}%`, '历史工单辅助', '建议转工单'],
-      actionLabel: '生成客户说明',
-      actionQuestion: '整理一段客户说明话术',
+      actionLabel: '生成处理摘要',
+      actionQuestion: '整理一段处理摘要',
     };
   }
 
@@ -538,7 +538,7 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
         `风险判断：${alert.duration}，${alert.estimatedLoss}，当前推送状态为“${alert.pushStatus}”。`,
         `优先建议：${alert.actions[0]} ${alert.actions[1]}`,
       ],
-      tags: [`命中工单 ${Math.max(alert.tickets.length, 1)} 条`, 'RAG 演示', 'AI 建议'],
+      tags: [`命中工单 ${Math.max(alert.tickets.length, 1)} 条`, '历史工单关联', 'AI 建议'],
       actionLabel: '生成处理步骤',
       actionQuestion: '给我一份现场处理步骤',
     };
@@ -551,7 +551,7 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
     sections: [
       '今日累计发电 94.7 MWh，实时功率 14.3 MW，综合健康分 98。',
       `当前仍有 ${pendingCount} 条待处理告警，最高优先级为 ${alert.station} 的 ${alert.title}。`,
-      '如果你希望，我可以继续把它整理成日报、工单摘要或客户说明。',
+      '如果你希望，我可以继续把它整理成日报、工单摘要或处理摘要。',
     ],
     tags: ['多站点视角', '实时摘要'],
     actionLabel: '生成今日日报',
@@ -891,12 +891,12 @@ export default function App() {
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.28em] text-sky-600">Solar Ops Demo</p>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.28em] text-sky-600">Solar Ops</p>
                 <h1 className="text-3xl font-black tracking-tight text-slate-950">多站点运维看板</h1>
               </div>
               <div className="rounded-2xl border border-sky-100 bg-white/85 px-3 py-2 shadow-sm backdrop-blur">
                 <p className="text-[11px] font-semibold text-slate-500">2026.04.25</p>
-                <p className="text-[11px] text-slate-400">客户演示模式</p>
+                <p className="text-[11px] text-slate-400">运行态势总览</p>
               </div>
             </div>
 
@@ -922,7 +922,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl bg-white/8 p-3 text-sm text-slate-100/90">
-                  系统已把“异常检测 + 工单经验 + 对话问答”串成前端 demo，便于向客户直接展示闭环能力。
+                  系统已把“异常检测 + 工单经验 + 对话问答”串成统一工作流，方便直接查看处置闭环。
                 </div>
               </div>
             </div>
@@ -991,7 +991,7 @@ export default function App() {
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-700">近 7 日发电趋势</h2>
-              <span className="text-xs text-slate-400">客户汇报常用视图</span>
+              <span className="text-xs text-slate-400">近 7 日运行视图</span>
             </div>
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={weeklyGenerationData}>
@@ -1103,7 +1103,7 @@ export default function App() {
             className="mb-6"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-700">AI 在这个 demo 里能展示什么</h2>
+              <h2 className="text-sm font-bold text-slate-700">AI 当前可提供</h2>
               <button
                 type="button"
                 onClick={() => switchView(1)}
@@ -1164,7 +1164,7 @@ export default function App() {
                 </div>
                 <h2 className="text-2xl font-black tracking-tight text-slate-950">AI 对话页</h2>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  把实时状态、异常诊断、日报草稿和工单建议放进一个对话流里做客户演示。
+                  把实时状态、异常诊断、日报草稿和工单建议放进一个对话流里直接处理。
                 </p>
               </div>
               <button
