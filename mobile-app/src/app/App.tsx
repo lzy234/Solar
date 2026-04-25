@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, type TouchEvent as ReactTouchEvent } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, type TouchEvent as ReactTouchEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, PanInfo } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Send, Activity, AlertCircle, Zap, TrendingUp, X, ChevronRight, Clock, MapPin, CheckCircle, AlertTriangle, Sun, Battery, Gauge } from 'lucide-react';
@@ -90,6 +91,7 @@ interface Message {
 
 export default function App() {
   const [currentView, setCurrentView] = useState(0);
+  const [viewportResetKey, setViewportResetKey] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'ai', text: '您好！我是您的 Solar AI 助手。运维看板已收缩至上方,您可以随时查阅。' },
     { id: 2, type: 'ai', text: '您可以问我:"分析一下嘉定电站的告警原因",或者"帮我生成今日运维报告"。' },
@@ -100,6 +102,7 @@ export default function App() {
   const [showAlertDetail, setShowAlertDetail] = useState(false);
   const [showPowerDetail, setShowPowerDetail] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>(alertsData);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const nextMessageIdRef = useRef(3);
   const indicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,6 +151,79 @@ export default function App() {
       ignore: false,
     };
   };
+
+  const forceViewportToDashboard = () => {
+    viewportRef.current?.style.setProperty('transform', 'translateX(0px)');
+  };
+
+  const resetNativeViewport = () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollLeft = 0;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollLeft = 0;
+    document.body.scrollTop = 0;
+  };
+
+  const applyDashboardState = () => {
+    resetSwipeState();
+    setCurrentView(0);
+    setShowAlertDetail(false);
+    setShowPowerDetail(false);
+    setViewportResetKey(prev => prev + 1);
+  };
+
+  const resetToDashboard = (forceSync = false) => {
+    if (forceSync) {
+      flushSync(() => {
+        applyDashboardState();
+      });
+    } else {
+      applyDashboardState();
+    }
+
+    // WebView/browser session restore can bring back both transform and native scroll offset.
+    resetNativeViewport();
+    forceViewportToDashboard();
+
+    requestAnimationFrame(() => {
+      resetNativeViewport();
+      forceViewportToDashboard();
+    });
+  };
+
+  useLayoutEffect(() => {
+    resetToDashboard();
+  }, []);
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    const handlePageShow = () => {
+      resetToDashboard(true);
+    };
+
+    const handlePageHide = () => {
+      resetToDashboard(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        resetToDashboard(true);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const shouldIgnoreSwipeTarget = (target: EventTarget | null) => {
     if (!(target instanceof Element)) {
@@ -276,6 +352,8 @@ export default function App() {
   return (
     <div className="w-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       <motion.div
+        key={viewportResetKey}
+        ref={viewportRef}
         className="flex h-full"
         animate={{ x: `-${currentView * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
