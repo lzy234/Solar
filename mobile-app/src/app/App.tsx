@@ -103,7 +103,7 @@ export default function App() {
   const [showPowerDetail, setShowPowerDetail] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>(alertsData);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
   const nextMessageIdRef = useRef(3);
   const indicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -117,13 +117,25 @@ export default function App() {
   });
   const isTyping = pendingReplyCount > 0;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
+    const messagesViewport = messagesViewportRef.current;
+    if (!messagesViewport) {
+      return;
+    }
+
+    messagesViewport.scrollTo({
+      top: messagesViewport.scrollHeight,
+      behavior,
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (currentView !== 1) {
+      return;
+    }
+
+    scrollMessagesToBottom(messages.length > 2 ? 'smooth' : 'auto');
+  }, [currentView, messages]);
 
   useEffect(() => {
     return () => {
@@ -355,6 +367,7 @@ export default function App() {
         key={viewportResetKey}
         ref={viewportRef}
         className="flex h-full"
+        initial={false}
         animate={{ x: `-${currentView * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         drag="x"
@@ -600,6 +613,7 @@ export default function App() {
 
           {/* Messages */}
           <div
+            ref={messagesViewportRef}
             className="flex-1 overflow-y-auto px-4 py-6 space-y-5"
             style={{ touchAction: 'pan-y' }}
           >
@@ -652,7 +666,6 @@ export default function App() {
                 </div>
               </motion.div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
