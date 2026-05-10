@@ -20,16 +20,17 @@
 
 ## 当前状态
 
-- 当前阶段：`Phase 2`
+- 当前阶段：`Phase 3`
 - 总体状态：`进行中`
-- 当前目标：`Phase 1 已完成，开始把首页告警列表切到真实接口`
-- 下一步：`新增 useAlertsList 并用 GET /api/alerts?status=OPEN 替换 alertsSeedData`
+- 当前目标：`Phase 2 已完成，开始把告警详情弹层与趋势图切到真实接口`
+- 下一步：`新增 useAlertDetail，打通 GET /api/alerts/{id} 与 GET /api/inverters/{sn}/trend`
 - 最后更新：`2026-05-10`
 
 ## 最近更新记录
 
 | 日期 | 更新人 | 变更内容 | 结果 |
 | --- | --- | --- | --- |
+| 2026-05-10 | Codex | 新增 `useAlertsList` 与 `AlertListSection`，首页告警列表切到 `GET /api/alerts?status=OPEN`，补齐 loading/empty/error/retry 与真实 KPI | 已完成 |
 | 2026-05-10 | Codex | 根据实现计划初始化多轮维护用 TodoList | 已创建 |
 | 2026-05-10 | Codex | 基于预发真实接口补齐 detail/trend 样例、ack/close 约束与 adapter 映射文档，完成 Phase 0 | 已完成 |
 | 2026-05-10 | Codex | 新增 `http.ts`、`alerts.ts`、`types.ts`、`adapters.ts`、`.env.example` 与 `vite-env.d.ts`，完成 Phase 1 基础接入层 | 已完成 |
@@ -92,25 +93,25 @@
 
 阶段目标：把首页告警区域从 seed 数据切到真实接口。
 
-- [ ] 用 `GET /api/alerts?status=OPEN` 替换 `alertsSeedData`。
-- [ ] 新增 `useAlertsList` hook。
-- [ ] `useAlertsList` 支持首次加载。
-- [ ] `useAlertsList` 支持手动刷新。
-- [ ] `useAlertsList` 支持错误态管理。
-- [ ] `useAlertsList` 支持 `ack/close` 的记录级 loading 状态。
-- [ ] 拆出 `mobile-app/src/app/components/alerts/AlertListSection.tsx`。
-- [ ] 增加列表 `loading` 状态。
-- [ ] 增加列表 `empty` 状态。
-- [ ] 增加列表 `error` 状态。
-- [ ] 增加列表 `retry` 操作。
-- [ ] 调整顶部统计口径，只保留真实告警相关 KPI。
-- [ ] 移除或停止引用 mock 看板数字。
+- [x] 用 `GET /api/alerts?status=OPEN` 替换 `alertsSeedData`。
+- [x] 新增 `useAlertsList` hook。
+- [x] `useAlertsList` 支持首次加载。
+- [x] `useAlertsList` 支持手动刷新。
+- [x] `useAlertsList` 支持错误态管理。
+- [x] `useAlertsList` 支持 `ack/close` 的记录级 loading 状态。
+- [x] 拆出 `mobile-app/src/app/components/alerts/AlertListSection.tsx`。
+- [x] 增加列表 `loading` 状态。
+- [x] 增加列表 `empty` 状态。
+- [x] 增加列表 `error` 状态。
+- [x] 增加列表 `retry` 操作。
+- [x] 调整顶部统计口径，只保留真实告警相关 KPI。
+- [x] 移除或停止引用 mock 看板数字。
 
 完成标准：
 
-- 首页告警列表不再依赖本地 seed。
-- 列表支持刷新和失败重试。
-- 页面统计口径与真实接口一致。
+- [x] 首页告警列表不再依赖本地 seed。
+- [x] 列表支持刷新和失败重试。
+- [x] 页面统计口径与真实接口一致。
 
 ### Phase 3：详情与趋势接入
 

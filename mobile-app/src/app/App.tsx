@@ -26,11 +26,9 @@ import {
   ArrowRight,
   Bot,
   CheckCircle,
-  ChevronRight,
   ClipboardList,
   Clock,
   FileText,
-  MapPin,
   Send,
   ShieldCheck,
   Sparkles,
@@ -38,6 +36,9 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { AlertListSection } from '@/app/components/alerts/AlertListSection';
+import { useAlertsList } from '@/app/modules/alerts/useAlertsList';
+import type { AlertListItemView } from '@/app/modules/alerts/types';
 
 type AlertLevel = 'critical' | 'warning' | 'info';
 type AlertStatus = 'pending' | 'processing' | 'resolved';
@@ -511,6 +512,118 @@ const getMetricTone = (tone: AlertMetric['tone']) => {
   return 'bg-sky-50 border-sky-100 text-sky-700';
 };
 
+const buildAlertPreviewStatus = (item: AlertListItemView, statusOverride?: AlertStatus): AlertStatus => {
+  if (statusOverride) {
+    return statusOverride;
+  }
+
+  if (item.status === 'closed') {
+    return 'resolved';
+  }
+
+  if (item.status === 'recovered' || item.actionState.isAcked) {
+    return 'processing';
+  }
+
+  return 'pending';
+};
+
+const buildAlertPreview = (
+  item: AlertListItemView,
+  fallback: AlertItem,
+  statusOverride?: AlertStatus
+): AlertItem => {
+  const severityLabel = item.severity === 'critical' ? '高优先级' : '关注级';
+  const previewStatus = buildAlertPreviewStatus(item, statusOverride);
+  const thresholdGap = Math.max(item.deviationPct - item.thresholdPct, 0);
+  const stateHint = item.stateHint ?? '等待运维确认';
+  const primaryTimeLabel = item.startedAt ? `开始于 ${item.dateTimeLabel}` : `发现于 ${item.dateTimeLabel}`;
+
+  return {
+    ...fallback,
+    id: item.alertId,
+    title: item.title,
+    station: item.stationName,
+    device: item.deviceLabel,
+    level: item.severity === 'critical' ? 'critical' : 'warning',
+    time: item.timeLabel,
+    status: previewStatus,
+    description: item.description,
+    aiSummary: `${item.stationName}${item.deviceLabel} 当前偏差 ${item.deviationPct.toFixed(1)}%，阈值 ${item.thresholdPct.toFixed(1)}%，建议优先核对现场读数与接线状态。`,
+    suggestion: item.actionState.isAcked
+      ? '告警已接手，建议继续跟进现场反馈并确认是否需要关闭。'
+      : '建议先确认逆变器实时读数、组串接线与现场遮挡情况，再决定是否升级处理。',
+    confidence: fallback.confidence,
+    duration: primaryTimeLabel,
+    estimatedLoss: `超阈值 ${thresholdGap.toFixed(1)}%`,
+    pushStatus: stateHint,
+    metrics: [
+      {
+        label: '当前电压',
+        value: `${item.voltage.toFixed(1)} V`,
+        hint: item.deviceLabel,
+        tone: item.severity === 'critical' ? 'rose' : 'amber',
+      },
+      {
+        label: '参考电压',
+        value: `${item.referenceVoltage.toFixed(1)} V`,
+        hint: '同站对标基线',
+        tone: 'sky',
+      },
+      {
+        label: '偏差比例',
+        value: `${item.deviationPct.toFixed(1)}%`,
+        hint: `阈值 ${item.thresholdPct.toFixed(1)}%`,
+        tone: item.severity === 'critical' ? 'rose' : 'amber',
+      },
+      {
+        label: '处理状态',
+        value: item.statusLabel,
+        hint: stateHint,
+        tone: item.actionState.isAcked ? 'emerald' : 'sky',
+      },
+    ],
+    causes: [
+      {
+        title: `${severityLabel}电压偏差`,
+        confidence: item.severity === 'critical' ? '高概率' : '中概率',
+        detail: `当前组串偏差 ${item.deviationPct.toFixed(1)}%，已经超过阈值 ${item.thresholdPct.toFixed(1)}%，需要继续结合现场状态判断原因。`,
+      },
+      {
+        title: '建议现场复核',
+        confidence: '中概率',
+        detail: '优先排查组串接线、组件遮挡、污染和逆变器侧实时采样值，确认是否存在持续性异常。',
+      },
+    ],
+    actions: [
+      `核对 ${item.deviceLabel} 的实时电压与参考基线，确认偏差是否持续。`,
+      '补采现场照片、逆变器截图或巡检记录，便于后续详情页接入真实趋势与工单信息。',
+      item.actionState.isAcked ? '继续跟踪接手后的处理结论，并准备回写关闭结果。' : '如已确认异常真实存在，先执行接手动作并等待后续 close 闭环接入。',
+    ],
+    timeline: [
+      {
+        time: item.timeLabel,
+        title: '告警进入列表',
+        detail: item.description,
+        tone: 'critical',
+      },
+      {
+        time: item.timeLabel,
+        title: '列表接入真实接口',
+        detail: `本条卡片来自 /api/alerts 实时返回，当前状态：${stateHint}。`,
+        tone: item.actionState.isAcked ? 'positive' : 'normal',
+      },
+    ],
+    tickets: fallback.tickets,
+    trend: fallback.trend,
+    relatedQuestions: [
+      `分析${item.stationName}${item.title}的原因`,
+      `给我${item.deviceLabel}的现场处理步骤`,
+      `整理${item.stationName}这条告警的处理摘要`,
+    ],
+  };
+};
+
 const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): Omit<Message, 'id'> => {
   const pendingCount = alerts.filter(item => item.status === 'pending').length;
   const criticalCount = alerts.filter(item => item.status === 'pending' && item.level === 'critical').length;
@@ -621,7 +734,7 @@ export default function App() {
   const [showAlertDetail, setShowAlertDetail] = useState(false);
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(alertsSeedData[0].id);
-  const [alerts, setAlerts] = useState<AlertItem[]>(alertsSeedData);
+  const [alertStatusOverrides, setAlertStatusOverrides] = useState<Record<number, AlertStatus>>({});
   const viewportShellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
@@ -654,6 +767,28 @@ export default function App() {
     isSwiping: false,
     ignore: false,
   });
+  const {
+    alerts: liveAlertItems,
+    error: liveAlertsError,
+    isLoading: isAlertsLoading,
+    isRefreshing: isAlertsRefreshing,
+    refresh: refreshAlerts,
+    retry: retryAlerts,
+  } = useAlertsList();
+  const previewAlerts =
+    liveAlertItems.length > 0
+      ? liveAlertItems.map((alert, index) =>
+          buildAlertPreview(
+            alert,
+            alertsSeedData[index % alertsSeedData.length],
+            alertStatusOverrides[alert.alertId]
+          )
+        )
+      : alertsSeedData;
+  const liveStationCount = new Set(liveAlertItems.map(alert => String(alert.stationId))).size;
+  const liveCriticalAlertsCount = liveAlertItems.filter(alert => alert.severity === 'critical').length;
+  const liveAckedAlertsCount = liveAlertItems.filter(alert => alert.actionState.isAcked).length;
+  const alerts = previewAlerts;
 
   const selectedAlert = alerts.find(alert => alert.id === selectedAlertId) ?? alerts[0];
   const pendingAlerts = alerts.filter(alert => alert.status === 'pending');
@@ -665,6 +800,18 @@ export default function App() {
   useEffect(() => {
     currentViewRef.current = currentView;
   }, [currentView]);
+
+  useEffect(() => {
+    if (!alerts.length) {
+      return;
+    }
+
+    if (alerts.some(alert => alert.id === selectedAlertId)) {
+      return;
+    }
+
+    setSelectedAlertId(alerts[0].id);
+  }, [alerts, selectedAlertId]);
 
   const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
     const viewport = messagesViewportRef.current;
@@ -1099,11 +1246,6 @@ export default function App() {
     enqueueQuestion(message.actionQuestion);
   };
 
-  const openGenerationDetail = () => {
-    setShowAlertDetail(false);
-    setShowGenerationDetail(true);
-  };
-
   const openAlertDetail = (alertId: number) => {
     setShowGenerationDetail(false);
     setSelectedAlertId(alertId);
@@ -1111,7 +1253,10 @@ export default function App() {
   };
 
   const handleAlertStatus = (alertId: number, newStatus: AlertStatus) => {
-    setAlerts(prev => prev.map(alert => (alert.id === alertId ? { ...alert, status: newStatus } : alert)));
+    setAlertStatusOverrides(prev => ({
+      ...prev,
+      [alertId]: newStatus,
+    }));
   };
 
   const syncAlertToCopilot = (alert: AlertItem, question?: string) => {
@@ -1168,40 +1313,44 @@ export default function App() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
                     <p className="text-[11px] text-sky-100/80">接入电站</p>
-                    <p className="mt-1 text-2xl font-black">4</p>
+                    <p className="mt-1 text-2xl font-black">
+                      {isAlertsLoading ? '--' : liveStationCount}
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
-                    <p className="text-[11px] text-sky-100/80">活跃告警</p>
-                    <p className="mt-1 text-2xl font-black">{pendingAlerts.length}</p>
+                    <p className="text-[11px] text-sky-100/80">开放告警</p>
+                    <p className="mt-1 text-2xl font-black">
+                      {isAlertsLoading ? '--' : liveAlertItems.length}
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-white/20 bg-white/16 p-3 backdrop-blur">
-                    <p className="text-[11px] text-sky-100/80">AI 建议命中</p>
-                    <p className="mt-1 text-2xl font-black">92%</p>
+                    <p className="text-[11px] text-sky-100/80">严重告警</p>
+                    <p className="mt-1 text-2xl font-black">
+                      {isAlertsLoading ? '--' : liveCriticalAlertsCount}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-white/16 bg-white/14 p-3 text-sm text-sky-50/95">
-                  系统已把“异常检测 + 工单经验 + 对话问答”串成统一工作流，方便直接查看处置闭环。
+                  首页告警卡片已切到 `GET /api/alerts?status=OPEN`，顶部数字只保留真实告警相关 KPI。
                 </div>
               </div>
             </div>
           </motion.div>
 
           <div className="mb-6 grid grid-cols-2 gap-4">
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={openGenerationDetail}
               className="rounded-3xl border border-white/70 bg-white/90 p-5 text-left shadow-lg shadow-slate-200/60"
             >
-              <TrendingUp className="mb-2 h-5 w-5 text-sky-500" />
-              <p className="mb-2 text-xs font-medium text-slate-500">今日发电量</p>
-              <p className="text-3xl font-black text-slate-950">94.7</p>
-              <p className="mt-1 text-xs font-semibold text-emerald-600">完成率 97.8%</p>
-              <p className="mt-2 text-xs font-semibold text-sky-600">查看详情</p>
-            </motion.button>
+              <AlertCircle className="mb-2 h-5 w-5 text-sky-500" />
+              <p className="mb-2 text-xs font-medium text-slate-500">开放告警</p>
+              <p className="text-3xl font-black text-slate-950">
+                {isAlertsLoading ? '--' : liveAlertItems.length}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-sky-600">实时接口统计</p>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -1209,10 +1358,12 @@ export default function App() {
               transition={{ delay: 0.1 }}
               className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-slate-200/60"
             >
-              <Zap className="mb-2 h-5 w-5 text-violet-500" />
-              <p className="mb-2 text-xs font-medium text-slate-500">实时功率</p>
-              <p className="text-3xl font-black text-slate-950">14.3</p>
-              <p className="mt-1 text-xs font-semibold text-violet-600">MW</p>
+              <AlertTriangle className="mb-2 h-5 w-5 text-rose-500" />
+              <p className="mb-2 text-xs font-medium text-slate-500">严重告警</p>
+              <p className="text-3xl font-black text-slate-950">
+                {isAlertsLoading ? '--' : liveCriticalAlertsCount}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-rose-600">需要优先关注</p>
             </motion.div>
 
             <motion.div
@@ -1221,10 +1372,12 @@ export default function App() {
               transition={{ delay: 0.15 }}
               className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-slate-200/60"
             >
-              <Activity className="mb-2 h-5 w-5 text-emerald-500" />
-              <p className="mb-2 text-xs font-medium text-slate-500">健康得分</p>
-              <p className="text-3xl font-black text-emerald-500">98</p>
-              <p className="mt-1 text-xs font-semibold text-emerald-600">运行稳定</p>
+              <CheckCircle className="mb-2 h-5 w-5 text-emerald-500" />
+              <p className="mb-2 text-xs font-medium text-slate-500">已接手</p>
+              <p className="text-3xl font-black text-emerald-500">
+                {isAlertsLoading ? '--' : liveAckedAlertsCount}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-emerald-600">acked_at 已回写</p>
             </motion.div>
 
             <motion.button
@@ -1238,8 +1391,8 @@ export default function App() {
               <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-200/50 blur-2xl" />
               <div className="relative">
                 <AlertCircle className="mb-2 h-5 w-5 text-amber-500" />
-                <p className="mb-2 text-xs font-medium text-slate-500">待处理告警</p>
-                <p className="text-3xl font-black text-amber-500">{pendingAlerts.length}</p>
+                <p className="mb-2 text-xs font-medium text-slate-500">默认关注</p>
+                <p className="text-lg font-black text-amber-500">{selectedAlert.station}</p>
                 <p className="mt-1 text-xs font-semibold text-amber-700">点击查看告警详情</p>
               </div>
             </motion.button>
@@ -1290,72 +1443,16 @@ export default function App() {
             transition={{ delay: 0.3 }}
             className="mb-6"
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-700">关键告警卡片</h2>
-              <button
-                type="button"
-                onClick={() => openAlertDetail(selectedAlert.id)}
-                className="text-xs font-semibold text-sky-600"
-              >
-                进入告警详情
-              </button>
-            </div>
-            <div className="space-y-3">
-              {alerts.map((alert, index) => {
-                const levelMeta = getLevelMeta(alert.level);
-                const statusMeta = getStatusMeta(alert.status);
-                const LevelIcon = levelMeta.icon;
-
-                return (
-                  <motion.button
-                    key={alert.id}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.35 + index * 0.06 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => openAlertDetail(alert.id)}
-                    className={`w-full rounded-[26px] border bg-white/92 p-5 text-left shadow-lg ${levelMeta.border}`}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className={`mt-0.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${levelMeta.accent} text-white shadow-lg`}>
-                          <LevelIcon className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-slate-900">{alert.title}</p>
-                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${levelMeta.chip}`}>
-                              {levelMeta.label}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5" />
-                              {alert.station}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              今日 {alert.time}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.chip}`}>
-                        {statusMeta.label}
-                      </span>
-                    </div>
-                    <p className="mb-3 text-sm leading-relaxed text-slate-600">{alert.aiSummary}</p>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>AI 置信度 {alert.confidence}%</span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-sky-600">
-                        查看详情
-                        <ChevronRight className="h-4 w-4" />
-                      </span>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
+            <AlertListSection
+              alerts={liveAlertItems}
+              error={liveAlertsError}
+              isLoading={isAlertsLoading}
+              isRefreshing={isAlertsRefreshing}
+              selectedAlertId={selectedAlert.id}
+              onOpenAlert={openAlertDetail}
+              onRetry={retryAlerts}
+              onRefresh={refreshAlerts}
+            />
           </motion.div>
 
           <motion.div
@@ -1441,7 +1538,9 @@ export default function App() {
             <div className="mb-2.5 grid grid-cols-2 gap-2">
               <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 shadow-sm shadow-slate-100/60">
                 <p className="text-[10px] text-slate-400">活跃告警</p>
-                <p className="text-xs font-black text-amber-600">{pendingAlerts.length}</p>
+                <p className="text-xs font-black text-amber-600">
+                  {isAlertsLoading ? '--' : liveAlertItems.length}
+                </p>
               </div>
               <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 shadow-sm shadow-slate-100/60">
                 <p className="text-[10px] text-slate-400">默认关注</p>
