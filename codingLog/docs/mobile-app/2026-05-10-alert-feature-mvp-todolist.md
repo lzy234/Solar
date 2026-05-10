@@ -30,6 +30,7 @@
 
 | 日期 | 更新人 | 变更内容 | 结果 |
 | --- | --- | --- | --- |
+| 2026-05-10 | Codex | 修复 Phase 3 回归：`App.tsx` 中 `Sparkles`、`AlertTriangle`、`CheckCircle`、`ArrowRight`、`X` 仍被引用但未从 `lucide-react` 导入，导致详情改造后页面运行时报 `ReferenceError` | 已修复 |
 | 2026-05-10 | Codex | 新增 `useAlertDetail`、`AlertDetailSheet`、`AlertStateView`，告警详情与趋势图切到 `GET /api/alerts/{id}` 和 `GET /api/inverters/{sn}/trend`，并收口无真实来源模块 | 已完成 |
 | 2026-05-10 | Codex | 新增 `useAlertsList` 与 `AlertListSection`，首页告警列表切到 `GET /api/alerts?status=OPEN`，补齐 loading/empty/error/retry 与真实 KPI | 已完成 |
 | 2026-05-10 | Codex | 根据实现计划初始化多轮维护用 TodoList | 已创建 |

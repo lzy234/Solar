@@ -19,11 +19,16 @@ import {
 } from 'recharts';
 import {
   AlertCircle,
+  AlertTriangle,
+  ArrowRight,
   Bot,
+  CheckCircle,
   ClipboardList,
   Send,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
+  X,
   Zap,
 } from 'lucide-react';
 import { AlertDetailSheet } from '@/app/components/alerts/AlertDetailSheet';
