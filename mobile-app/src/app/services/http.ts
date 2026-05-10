@@ -20,15 +20,22 @@ export class ApiError extends Error {
   }
 }
 
-const DEFAULT_API_BASE_URL = "http://localhost:8000";
+const DEFAULT_API_BASE_URL = "https://solar-system-mon.preview.aliyun-zeabur.cn";
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
 function buildUrl(path: string) {
-  const baseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL);
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = normalizeBaseUrl(
+    configuredBaseUrl === undefined ? DEFAULT_API_BASE_URL : configuredBaseUrl,
+  );
+
+  if (!baseUrl) {
+    return normalizedPath;
+  }
 
   return `${baseUrl}${normalizedPath}`;
 }
