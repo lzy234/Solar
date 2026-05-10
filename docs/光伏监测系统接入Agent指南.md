@@ -169,7 +169,59 @@ asyncio.run(listen_alerts())
 http://localhost:8000/docs
 ```
 
+### 浏览器直接测试说明
+
+下面这些例子全部来自当前运行中的 `http://localhost:8000/docs` 对应服务，我已在本机用真实数据实测通过。
+
+| 场景 | 真实可用参数 | 备注 |
+|---|---|---|
+| 健康检查 | 无 | 最先测试，确认 API 服务正常 |
+| 查询告警列表 | `limit=5` | 当前环境已有真实告警 |
+| 查询单条告警详情 | `alert_id=19` | 当前环境里真实存在的告警 ID |
+| 查询电站状态 | `station_id=1299184320439443378` | 当前环境可直接返回 |
+| 查询逆变器最新状态 | `sn=2815030259150047` | 当前环境可直接返回 |
+| 查询逆变器趋势 | `sn=2815030259150047&string_index=1` | 建议先不传时间范围，避免时区或空窗问题 |
+| 确认 / 关闭告警 | `alert_id=19` | 写操作，会修改现场数据，本文不直接执行 |
+
+可按下面顺序测试：
+
+| 步骤 | 建议测试 | 目的 |
+|---|---|---|
+| 1 | `GET /health` | 确认 API 服务已启动 |
+| 2 | `GET /api/alerts?limit=5` | 先拿到真实 `alert_id`、`station_id`、`inverter_sn` |
+| 3 | `GET /api/alerts/19` | 验证单条告警详情 |
+| 4 | `GET /api/stations/1299184320439443378/status` | 验证电站状态接口 |
+| 5 | `GET /api/inverters/2815030259150047/latest` | 验证逆变器最新状态 |
+| 6 | `GET /api/inverters/2815030259150047/trend?string_index=1` | 验证趋势接口 |
+
+> 注意：`/api/inverters/{sn}/latest` 和 `/api/inverters/{sn}/trend` 里的 `sn` 必须是逆变器序列号，不是电站 ID。  
+> 例如：`2815030259150047` 是正确的 `sn`，`1299184320439443378` 是 `station_id`。
+
 ### 接口清单
+
+#### 健康检查
+
+**检查 API 服务是否正常**
+
+```text
+GET /health
+```
+
+真实请求：
+
+```bash
+curl "http://localhost:8000/health"
+```
+
+真实返回：
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
 
 #### 告警相关
 
@@ -189,9 +241,38 @@ GET /api/alerts
 | `limit` | int | 每页条数，默认 100 |
 | `offset` | int | 分页偏移 |
 
-示例：
+真实请求：
 ```bash
-curl "http://localhost:8000/api/alerts?status=OPEN&severity=CRITICAL"
+curl "http://localhost:8000/api/alerts?limit=5"
+```
+
+真实返回（节选，当前总数会随采集变化）：
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 19,
+    "page": 1,
+    "limit": 5,
+    "items": [
+      {
+        "id": 19,
+        "station_id": 1299184320438808979,
+        "inverter_sn": "2805385235050303",
+        "string_index": 1,
+        "severity": "WARNING",
+        "status": "OPEN",
+        "voltage": 352.4,
+        "reference_voltage": 384.5,
+        "deviation_pct": 8.35,
+        "threshold_pct": 5.0,
+        "started_at": "2026-05-10T07:21:08.546677+00:00",
+        "detected_at": "2026-05-10T07:21:08.546677+00:00"
+      }
+    ]
+  }
+}
 ```
 
 ---
@@ -202,9 +283,36 @@ curl "http://localhost:8000/api/alerts?status=OPEN&severity=CRITICAL"
 GET /api/alerts/{alert_id}
 ```
 
-示例：
+真实请求：
 ```bash
-curl "http://localhost:8000/api/alerts/10001"
+curl "http://localhost:8000/api/alerts/19"
+```
+
+真实返回：
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 19,
+    "station_id": 1299184320438808979,
+    "inverter_sn": "2805385235050303",
+    "string_index": 1,
+    "severity": "WARNING",
+    "status": "OPEN",
+    "voltage": 352.4,
+    "reference_voltage": 384.5,
+    "deviation_pct": 8.35,
+    "threshold_pct": 5.0,
+    "started_at": "2026-05-10T07:21:08.546677+00:00",
+    "detected_at": "2026-05-10T07:21:08.546677+00:00",
+    "acked_at": null,
+    "recovered_at": null,
+    "closed_at": null,
+    "dedup_key": "2805385235050303:1:WARNING",
+    "operator_note": null
+  }
+}
 ```
 
 ---
@@ -217,9 +325,22 @@ Agent 收到推送后调用，避免重复处理。
 POST /api/alerts/{alert_id}/ack
 ```
 
-示例：
+真实可用请求（当前环境存在该 `alert_id`，但执行后会修改现场状态，本文不实际执行）：
 ```bash
-curl -X POST "http://localhost:8000/api/alerts/10001/ack"
+curl -X POST "http://localhost:8000/api/alerts/19/ack"
+```
+
+成功返回结构：
+
+```json
+{
+  "success": true,
+  "data": {
+    "alert_id": 19,
+    "acked": true,
+    "acked_at": "2026-05-10T07:xx:xx+00:00"
+  }
+}
 ```
 
 ---
@@ -235,11 +356,23 @@ Content-Type: application/json
 { "operator_note": "已更换第3路组串连接头，电压恢复正常" }
 ```
 
-示例：
+真实可用请求（当前环境存在该 `alert_id`，但执行后会修改现场状态，本文不实际执行）：
 ```bash
-curl -X POST "http://localhost:8000/api/alerts/10001/close" \
+curl -X POST "http://localhost:8000/api/alerts/19/close" \
   -H "Content-Type: application/json" \
-  -d '{"operator_note": "已更换连接头"}'
+  -d '{"operator_note":"现场已复核，确认为计划内停机，关闭告警。"}'
+```
+
+成功返回结构：
+
+```json
+{
+  "success": true,
+  "data": {
+    "alert_id": 19,
+    "status": "CLOSED"
+  }
+}
 ```
 
 ---
@@ -254,9 +387,25 @@ curl -X POST "http://localhost:8000/api/alerts/10001/close" \
 GET /api/inverters/{sn}/latest
 ```
 
-示例：
+真实请求：
 ```bash
-curl "http://localhost:8000/api/inverters/120B40198150131/latest"
+curl "http://localhost:8000/api/inverters/2815030259150047/latest"
+```
+
+真实返回：
+
+```json
+{
+  "success": true,
+  "data": {
+    "time": "2026-05-10T07:19:21.707000+00:00",
+    "state": 1,
+    "pac": 67.31,
+    "power": 110.0,
+    "dc_input_type": 15,
+    "payload": "{\"pac\":67.31,...,\"inverter_sn\":\"2815030259150047\"}"
+  }
+}
 ```
 
 ---
@@ -265,14 +414,42 @@ curl "http://localhost:8000/api/inverters/120B40198150131/latest"
 
 人工追问"这个问题持续多久了"时调用。
 
-```
-GET /api/inverters/{sn}/trend?string_index=3&start=2026-04-28T00:00:00Z
+```text
+GET /api/inverters/{sn}/trend?string_index=1
 ```
 
 | 参数 | 说明 |
 |---|---|
 | `string_index` | 直流接口编号（必填） |
 | `start` / `end` | 时间范围，默认最近 24 小时 |
+
+真实请求：
+
+```bash
+curl "http://localhost:8000/api/inverters/2815030259150047/trend?string_index=1"
+```
+
+真实返回：
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "time": "2026-05-10T07:09:21.681000+00:00",
+      "voltage": 701.2,
+      "reference_voltage": 701.2,
+      "deviation_pct": 0.0
+    },
+    {
+      "time": "2026-05-10T07:19:21.707000+00:00",
+      "voltage": 702.5,
+      "reference_voltage": 702.5,
+      "deviation_pct": 0.0
+    }
+  ]
+}
+```
 
 ---
 
@@ -284,15 +461,21 @@ GET /api/inverters/{sn}/trend?string_index=3&start=2026-04-28T00:00:00Z
 GET /api/stations/{station_id}/status
 ```
 
-返回示例：
+真实请求：
+
+```bash
+curl "http://localhost:8000/api/stations/1299184320439443378/status"
+```
+
+真实返回：
 ```json
 {
   "success": true,
   "data": {
-    "station_id": "1299184320439443378",
-    "online_device_count": 3,
-    "open_alert_count": 2,
-    "latest_alerts": [...]
+    "station_id": 1299184320439443378,
+    "online_device_count": 5,
+    "open_alert_count": 0,
+    "latest_alerts": []
   }
 }
 ```

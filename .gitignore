@@ -1,2 +1,4 @@
 mobile-app/node_modules
+mobile-app/.env.local
+mobile-app/.env.*.local
 .vscode

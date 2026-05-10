@@ -20,10 +20,10 @@
 
 ## 当前状态
 
-- 当前阶段：`Phase 0`
-- 总体状态：`未开始`
-- 当前目标：`等待按计划开始任务拆解与联调推进`
-- 下一步：`先确认 alerts detail 与 trend 的真实 JSON 样例`
+- 当前阶段：`Phase 2`
+- 总体状态：`进行中`
+- 当前目标：`Phase 1 已完成，开始把首页告警列表切到真实接口`
+- 下一步：`新增 useAlertsList 并用 GET /api/alerts?status=OPEN 替换 alertsSeedData`
 - 最后更新：`2026-05-10`
 
 ## 最近更新记录
@@ -31,13 +31,15 @@
 | 日期 | 更新人 | 变更内容 | 结果 |
 | --- | --- | --- | --- |
 | 2026-05-10 | Codex | 根据实现计划初始化多轮维护用 TodoList | 已创建 |
+| 2026-05-10 | Codex | 基于预发真实接口补齐 detail/trend 样例、ack/close 约束与 adapter 映射文档，完成 Phase 0 | 已完成 |
+| 2026-05-10 | Codex | 新增 `http.ts`、`alerts.ts`、`types.ts`、`adapters.ts`、`.env.example` 与 `vite-env.d.ts`，完成 Phase 1 基础接入层 | 已完成 |
 
 ## 阻塞与待确认
 
-- [!] 后端需提供 `GET /api/alerts/{id}` 的真实 JSON 样例。
-- [!] 后端需提供 `GET /api/inverters/{sn}/trend` 的真实 JSON 样例。
-- [ ] 需确认 `ack` 后是否有可见回写字段可用于前端刷新展示。
-- [ ] 需确认 `close` 是否要求备注 `operatorNote` 为必填。
+- [已确认] `GET /api/alerts/{id}` 的真实 JSON 样例已沉淀到 [2026-05-10-alert-feature-phase0-api-confirmation.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-phase0-api-confirmation.md:1) 与 [光伏监测系统接入Agent指南.md](D:/Project/Solar/docs/光伏监测系统接入Agent指南.md:283)。
+- [已确认] `GET /api/inverters/{sn}/trend` 的真实 JSON 样例已沉淀到 [2026-05-10-alert-feature-phase0-api-confirmation.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-phase0-api-confirmation.md:1) 与 [光伏监测系统接入Agent指南.md](D:/Project/Solar/docs/光伏监测系统接入Agent指南.md:418)。
+- [已确认] `ack` 后列表和详情均可使用 `acked_at` 作为“已接手”回写字段；不再设计持久 `processing` 状态。
+- [已确认] `close` 请求体必传，但 `operator_note` 按 OpenAPI schema 推断可空且非必填；第一版可先不做备注输入框。
 - [ ] 需确认是否保留“同步到 AI 对话”按钮作为纯演示入口。
 
 ## 任务清单
@@ -46,45 +48,45 @@
 
 阶段目标：补齐接口样例和字段映射前置条件，避免前端边写边猜。
 
-- [ ] 与后端确认 `GET /api/alerts/{id}` 的完整返回字段。
-- [ ] 与后端确认 `GET /api/inverters/{sn}/trend` 的点位结构、时间字段、数值字段。
-- [ ] 与后端确认 `ack` 后列表或详情中是否会体现“已接手”痕迹。
-- [ ] 与产品或后端确认 `close` 是否允许第一版不填备注。
-- [ ] 输出字段样例文档。
-- [ ] 输出 adapter 映射表。
+- [x] 与后端确认 `GET /api/alerts/{id}` 的完整返回字段。
+- [x] 与后端确认 `GET /api/inverters/{sn}/trend` 的点位结构、时间字段、数值字段。
+- [x] 与后端确认 `ack` 后列表或详情中是否会体现“已接手”痕迹。
+- [x] 与产品或后端确认 `close` 是否允许第一版不填备注。
+- [x] 输出字段样例文档：[2026-05-10-alert-feature-phase0-api-confirmation.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-phase0-api-confirmation.md:1)
+- [x] 输出 adapter 映射表：[2026-05-10-alert-feature-phase0-api-confirmation.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-phase0-api-confirmation.md:1)
 
 完成标准：
 
-- 已拿到 detail 与 trend 的真实样例。
-- 已明确 `ack` 和 `close` 的联调约束。
-- 已有可执行的字段映射依据。
+- [x] 已拿到 detail 与 trend 的真实样例。
+- [x] 已明确 `ack` 和 `close` 的联调约束。
+- [x] 已有可执行的字段映射依据。
 
 ### Phase 1：基础接入层
 
 阶段目标：建立最小可复用接口层与数据适配层。
 
-- [ ] 新增 `VITE_API_BASE_URL` 配置。
-- [ ] 新增 `mobile-app/src/app/services/http.ts`。
-- [ ] 在 `http.ts` 中完成 `baseURL`、JSON 解析、统一错误处理封装。
-- [ ] 在 `http.ts` 中支持 `AbortController`。
-- [ ] 新增 `mobile-app/src/app/services/alerts.ts`。
-- [ ] 在 `alerts.ts` 中实现 `getAlerts(params)`。
-- [ ] 在 `alerts.ts` 中实现 `getAlertDetail(alertId)`。
-- [ ] 在 `alerts.ts` 中实现 `ackAlert(alertId)`。
-- [ ] 在 `alerts.ts` 中实现 `closeAlert(alertId, operatorNote?)`。
-- [ ] 在 `alerts.ts` 中实现 `getInverterTrend(sn, params)`。
-- [ ] 视实际需要实现 `getStationStatus(stationId)`。
-- [ ] 新增 `mobile-app/src/app/modules/alerts/types.ts`。
-- [ ] 新增 `mobile-app/src/app/modules/alerts/adapters.ts`。
-- [ ] 定义后端原始类型：`ApiAlertListItem`、`ApiAlertDetail`、`ApiTrendPoint`、`ApiStationStatus`。
-- [ ] 定义前端展示类型：`AlertListItemView`、`AlertDetailView`、`AlertTrendPointView`、`AlertActionState`。
-- [ ] 完成严重级别、状态、时间、设备标识等字段映射。
+- [x] 新增 `VITE_API_BASE_URL` 配置。
+- [x] 新增 `mobile-app/src/app/services/http.ts`。
+- [x] 在 `http.ts` 中完成 `baseURL`、JSON 解析、统一错误处理封装。
+- [x] 在 `http.ts` 中支持 `AbortController`。
+- [x] 新增 `mobile-app/src/app/services/alerts.ts`。
+- [x] 在 `alerts.ts` 中实现 `getAlerts(params)`。
+- [x] 在 `alerts.ts` 中实现 `getAlertDetail(alertId)`。
+- [x] 在 `alerts.ts` 中实现 `ackAlert(alertId)`。
+- [x] 在 `alerts.ts` 中实现 `closeAlert(alertId, operatorNote?)`。
+- [x] 在 `alerts.ts` 中实现 `getInverterTrend(sn, params)`。
+- [x] 视实际需要实现 `getStationStatus(stationId)`。
+- [x] 新增 `mobile-app/src/app/modules/alerts/types.ts`。
+- [x] 新增 `mobile-app/src/app/modules/alerts/adapters.ts`。
+- [x] 定义后端原始类型：`ApiAlertListItem`、`ApiAlertDetail`、`ApiTrendPoint`、`ApiStationStatus`。
+- [x] 定义前端展示类型：`AlertListItemView`、`AlertDetailView`、`AlertTrendPointView`、`AlertActionState`。
+- [x] 完成严重级别、状态、时间、设备标识等字段映射。
 
 完成标准：
 
-- 请求层已可复用。
-- 告警相关接口函数齐备。
-- 页面不直接消费后端原始字段。
+- [x] 请求层已可复用。
+- [x] 告警相关接口函数齐备。
+- [x] 页面不直接消费后端原始字段。
 
 ### Phase 2：列表接入
 
