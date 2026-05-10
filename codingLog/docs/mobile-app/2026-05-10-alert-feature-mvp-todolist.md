@@ -20,16 +20,17 @@
 
 ## 当前状态
 
-- 当前阶段：`Phase 3`
+- 当前阶段：`Phase 4`
 - 总体状态：`进行中`
-- 当前目标：`Phase 2 已完成，开始把告警详情弹层与趋势图切到真实接口`
-- 下一步：`新增 useAlertDetail，打通 GET /api/alerts/{id} 与 GET /api/inverters/{sn}/trend`
+- 当前目标：`在 Phase 3 已完成的基础上，接入 ack / close 真实动作与反馈`
+- 下一步：`将详情页底部操作接到 POST /api/alerts/{id}/ack 与 POST /api/alerts/{id}/close`
 - 最后更新：`2026-05-10`
 
 ## 最近更新记录
 
 | 日期 | 更新人 | 变更内容 | 结果 |
 | --- | --- | --- | --- |
+| 2026-05-10 | Codex | 新增 `useAlertDetail`、`AlertDetailSheet`、`AlertStateView`，告警详情与趋势图切到 `GET /api/alerts/{id}` 和 `GET /api/inverters/{sn}/trend`，并收口无真实来源模块 | 已完成 |
 | 2026-05-10 | Codex | 新增 `useAlertsList` 与 `AlertListSection`，首页告警列表切到 `GET /api/alerts?status=OPEN`，补齐 loading/empty/error/retry 与真实 KPI | 已完成 |
 | 2026-05-10 | Codex | 根据实现计划初始化多轮维护用 TodoList | 已创建 |
 | 2026-05-10 | Codex | 基于预发真实接口补齐 detail/trend 样例、ack/close 约束与 adapter 映射文档，完成 Phase 0 | 已完成 |
@@ -117,26 +118,26 @@
 
 阶段目标：把详情弹层和趋势图切到真实接口，并收缩无后端来源的展示。
 
-- [ ] 新增 `useAlertDetail` hook。
-- [ ] `useAlertDetail` 支持按 `selectedAlertId` 拉取详情。
-- [ ] `useAlertDetail` 支持根据 `inverter_sn`、`string_index` 拉取趋势。
-- [ ] `useAlertDetail` 支持切换告警时取消旧请求。
-- [ ] `useAlertDetail` 合并详情与趋势加载状态。
-- [ ] 拆出 `mobile-app/src/app/components/alerts/AlertDetailSheet.tsx`。
-- [ ] 拆出 `mobile-app/src/app/components/alerts/AlertStateView.tsx`。
-- [ ] 详情弹层不再依赖列表中携带的完整 mock 对象。
-- [ ] 顶部大卡仅保留真实可用字段。
-- [ ] 趋势图改为消费 `GET /api/inverters/{sn}/trend` 数据。
-- [ ] 隐藏 `AI 诊断与建议动作` 模块。
-- [ ] 隐藏 `历史工单命中` 模块。
-- [ ] 隐藏 `推荐追问` 模块。
-- [ ] 移除无真实来源的 `AI 置信度`、`损失评估`、`Push Status` 承诺型展示。
+- [x] 新增 `useAlertDetail` hook。
+- [x] `useAlertDetail` 支持按 `selectedAlertId` 拉取详情。
+- [x] `useAlertDetail` 支持根据 `inverter_sn`、`string_index` 拉取趋势。
+- [x] `useAlertDetail` 支持切换告警时取消旧请求。
+- [x] `useAlertDetail` 合并详情与趋势加载状态。
+- [x] 拆出 `mobile-app/src/app/components/alerts/AlertDetailSheet.tsx`。
+- [x] 拆出 `mobile-app/src/app/components/alerts/AlertStateView.tsx`。
+- [x] 详情弹层不再依赖列表中携带的完整 mock 对象。
+- [x] 顶部大卡仅保留真实可用字段。
+- [x] 趋势图改为消费 `GET /api/inverters/{sn}/trend` 数据。
+- [x] 隐藏 `AI 诊断与建议动作` 模块。
+- [x] 隐藏 `历史工单命中` 模块。
+- [x] 隐藏 `推荐追问` 模块。
+- [x] 移除无真实来源的 `AI 置信度`、`损失评估`、`Push Status` 承诺型展示。
 
 完成标准：
 
-- 任一告警详情都来自真实接口。
-- 趋势图不再使用 mock 数据。
-- 无后端来源模块已收口或隐藏。
+- [x] 任一告警详情都来自真实接口。
+- [x] 趋势图不再使用 mock 数据。
+- [x] 无后端来源模块已收口或隐藏。
 
 ### Phase 4：ack / close 动作接入
 
@@ -203,13 +204,13 @@
 
 ## 验收勾选
 
-- [ ] 首页告警列表不再依赖 `alertsSeedData`。
-- [ ] 打开任一告警详情时，详情内容来自真实接口。
-- [ ] 趋势图来自 `GET /api/inverters/{sn}/trend`。
+- [x] 首页告警列表不再依赖 `alertsSeedData`。
+- [x] 打开任一告警详情时，详情内容来自真实接口。
+- [x] 趋势图来自 `GET /api/inverters/{sn}/trend`。
 - [ ] `ack` 能实际调用后端并给出 UI 反馈。
 - [ ] `close` 能实际调用后端并给出 UI 反馈。
-- [ ] 页面具备 `loading`、`empty`、`error`、`retry`。
-- [ ] 详情页不再承诺后端未提供的 AI/工单/损失评估等真实能力。
+- [x] 页面具备 `loading`、`empty`、`error`、`retry`。
+- [x] 详情页不再承诺后端未提供的 AI/工单/损失评估等真实能力。
 
 ## 建议更新模板
 

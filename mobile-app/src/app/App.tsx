@@ -12,31 +12,23 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import {
-  Activity,
   AlertCircle,
-  AlertTriangle,
-  ArrowRight,
   Bot,
-  CheckCircle,
   ClipboardList,
-  Clock,
-  FileText,
   Send,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
-  X,
   Zap,
 } from 'lucide-react';
+import { AlertDetailSheet } from '@/app/components/alerts/AlertDetailSheet';
 import { AlertListSection } from '@/app/components/alerts/AlertListSection';
+import { useAlertDetail } from '@/app/modules/alerts/useAlertDetail';
 import { useAlertsList } from '@/app/modules/alerts/useAlertsList';
 import type { AlertListItemView } from '@/app/modules/alerts/types';
 
@@ -418,30 +410,6 @@ const quickPrompts = [
   '整理一段处理摘要',
 ];
 
-const getStatusMeta = (status: AlertStatus) => {
-  if (status === 'resolved') {
-    return {
-      label: '已解决',
-      chip: 'bg-emerald-100 text-emerald-700',
-      button: 'bg-emerald-500 hover:bg-emerald-600',
-    };
-  }
-
-  if (status === 'processing') {
-    return {
-      label: '处理中',
-      chip: 'bg-sky-100 text-sky-700',
-      button: 'bg-sky-500 hover:bg-sky-600',
-    };
-  }
-
-  return {
-    label: '待处理',
-    chip: 'bg-amber-100 text-amber-700',
-    button: 'bg-amber-500 hover:bg-amber-600',
-  };
-};
-
 const getStationPowerStatusMeta = (status: StationPower['status']) => {
   if (status === 'excellent') {
     return {
@@ -466,57 +434,7 @@ const getStationPowerStatusMeta = (status: StationPower['status']) => {
   };
 };
 
-const getLevelMeta = (level: AlertLevel) => {
-  if (level === 'critical') {
-    return {
-      label: '高优先级',
-      accent: 'from-rose-500 to-orange-500',
-      chip: 'bg-rose-100 text-rose-700 border-rose-200',
-      icon: AlertTriangle,
-      border: 'border-rose-200',
-    };
-  }
-
-  if (level === 'warning') {
-    return {
-      label: '需关注',
-      accent: 'from-amber-400 to-orange-500',
-      chip: 'bg-amber-100 text-amber-700 border-amber-200',
-      icon: AlertCircle,
-      border: 'border-amber-200',
-    };
-  }
-
-  return {
-    label: '信息提示',
-    accent: 'from-sky-400 to-blue-500',
-    chip: 'bg-sky-100 text-sky-700 border-sky-200',
-    icon: Activity,
-    border: 'border-sky-200',
-  };
-};
-
-const getMetricTone = (tone: AlertMetric['tone']) => {
-  if (tone === 'rose') {
-    return 'bg-rose-50 border-rose-100 text-rose-700';
-  }
-
-  if (tone === 'amber') {
-    return 'bg-amber-50 border-amber-100 text-amber-700';
-  }
-
-  if (tone === 'emerald') {
-    return 'bg-emerald-50 border-emerald-100 text-emerald-700';
-  }
-
-  return 'bg-sky-50 border-sky-100 text-sky-700';
-};
-
-const buildAlertPreviewStatus = (item: AlertListItemView, statusOverride?: AlertStatus): AlertStatus => {
-  if (statusOverride) {
-    return statusOverride;
-  }
-
+const buildAlertPreviewStatus = (item: AlertListItemView): AlertStatus => {
   if (item.status === 'closed') {
     return 'resolved';
   }
@@ -530,11 +448,10 @@ const buildAlertPreviewStatus = (item: AlertListItemView, statusOverride?: Alert
 
 const buildAlertPreview = (
   item: AlertListItemView,
-  fallback: AlertItem,
-  statusOverride?: AlertStatus
+  fallback: AlertItem
 ): AlertItem => {
   const severityLabel = item.severity === 'critical' ? '高优先级' : '关注级';
-  const previewStatus = buildAlertPreviewStatus(item, statusOverride);
+  const previewStatus = buildAlertPreviewStatus(item);
   const thresholdGap = Math.max(item.deviationPct - item.thresholdPct, 0);
   const stateHint = item.stateHint ?? '等待运维确认';
   const primaryTimeLabel = item.startedAt ? `开始于 ${item.dateTimeLabel}` : `发现于 ${item.dateTimeLabel}`;
@@ -733,8 +650,7 @@ export default function App() {
   const [showGenerationDetail, setShowGenerationDetail] = useState(false);
   const [showAlertDetail, setShowAlertDetail] = useState(false);
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
-  const [selectedAlertId, setSelectedAlertId] = useState(alertsSeedData[0].id);
-  const [alertStatusOverrides, setAlertStatusOverrides] = useState<Record<number, AlertStatus>>({});
+  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const viewportShellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
@@ -777,13 +693,7 @@ export default function App() {
   } = useAlertsList();
   const previewAlerts =
     liveAlertItems.length > 0
-      ? liveAlertItems.map((alert, index) =>
-          buildAlertPreview(
-            alert,
-            alertsSeedData[index % alertsSeedData.length],
-            alertStatusOverrides[alert.alertId]
-          )
-        )
+      ? liveAlertItems.map((alert, index) => buildAlertPreview(alert, alertsSeedData[index % alertsSeedData.length]))
       : alertsSeedData;
   const liveStationCount = new Set(liveAlertItems.map(alert => String(alert.stationId))).size;
   const liveCriticalAlertsCount = liveAlertItems.filter(alert => alert.severity === 'critical').length;
@@ -791,27 +701,38 @@ export default function App() {
   const alerts = previewAlerts;
 
   const selectedAlert = alerts.find(alert => alert.id === selectedAlertId) ?? alerts[0];
-  const pendingAlerts = alerts.filter(alert => alert.status === 'pending');
-  const processingAlerts = alerts.filter(alert => alert.status === 'processing');
-  const resolvedAlerts = alerts.filter(alert => alert.status === 'resolved');
+  const selectedLiveAlert = liveAlertItems.find(alert => alert.alertId === selectedAlertId) ?? liveAlertItems[0] ?? null;
   const isTyping = pendingReplyCount > 0;
   const isDetailSheetOpen = showGenerationDetail || showAlertDetail;
+  const shouldLoadAlertDetail = showAlertDetail && selectedLiveAlert !== null;
+  const {
+    detail: selectedAlertDetail,
+    trend: selectedAlertTrend,
+    isDetailLoading: isAlertDetailLoading,
+    isTrendLoading: isAlertTrendLoading,
+    detailError: alertDetailError,
+    trendError: alertTrendError,
+    retry: retryAlertDetail,
+  } = useAlertDetail(selectedAlertId, shouldLoadAlertDetail);
 
   useEffect(() => {
     currentViewRef.current = currentView;
   }, [currentView]);
 
   useEffect(() => {
-    if (!alerts.length) {
+    if (!liveAlertItems.length) {
+      if (showAlertDetail) {
+        setShowAlertDetail(false);
+      }
       return;
     }
 
-    if (alerts.some(alert => alert.id === selectedAlertId)) {
+    if (selectedAlertId !== null && liveAlertItems.some(alert => alert.alertId === selectedAlertId)) {
       return;
     }
 
-    setSelectedAlertId(alerts[0].id);
-  }, [alerts, selectedAlertId]);
+    setSelectedAlertId(liveAlertItems[0].alertId);
+  }, [liveAlertItems, selectedAlertId, showAlertDetail]);
 
   const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
     const viewport = messagesViewportRef.current;
@@ -1247,16 +1168,13 @@ export default function App() {
   };
 
   const openAlertDetail = (alertId: number) => {
+    if (!liveAlertItems.some(alert => alert.alertId === alertId)) {
+      return;
+    }
+
     setShowGenerationDetail(false);
     setSelectedAlertId(alertId);
     setShowAlertDetail(true);
-  };
-
-  const handleAlertStatus = (alertId: number, newStatus: AlertStatus) => {
-    setAlertStatusOverrides(prev => ({
-      ...prev,
-      [alertId]: newStatus,
-    }));
   };
 
   const syncAlertToCopilot = (alert: AlertItem, question?: string) => {
@@ -1385,15 +1303,17 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => openAlertDetail(selectedAlert.id)}
+              onClick={() => selectedLiveAlert ? openAlertDetail(selectedLiveAlert.alertId) : undefined}
               className="relative overflow-hidden rounded-3xl border border-amber-200/80 bg-[linear-gradient(145deg,_rgba(255,251,235,1),_rgba(255,247,237,1))] p-5 text-left shadow-lg shadow-amber-100/70"
             >
               <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-200/50 blur-2xl" />
               <div className="relative">
                 <AlertCircle className="mb-2 h-5 w-5 text-amber-500" />
                 <p className="mb-2 text-xs font-medium text-slate-500">默认关注</p>
-                <p className="text-lg font-black text-amber-500">{selectedAlert.station}</p>
-                <p className="mt-1 text-xs font-semibold text-amber-700">点击查看告警详情</p>
+                <p className="text-lg font-black text-amber-500">{selectedLiveAlert?.stationName ?? '当前无开放告警'}</p>
+                <p className="mt-1 text-xs font-semibold text-amber-700">
+                  {selectedLiveAlert ? '点击查看告警详情' : '等待开放告警返回'}
+                </p>
               </div>
             </motion.button>
           </div>
@@ -1448,7 +1368,7 @@ export default function App() {
               error={liveAlertsError}
               isLoading={isAlertsLoading}
               isRefreshing={isAlertsRefreshing}
-              selectedAlertId={selectedAlert.id}
+              selectedAlertId={selectedLiveAlert?.alertId}
               onOpenAlert={openAlertDetail}
               onRetry={retryAlerts}
               onRefresh={refreshAlerts}
@@ -1528,7 +1448,7 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => openAlertDetail(selectedAlert.id)}
+                onClick={() => selectedLiveAlert ? openAlertDetail(selectedLiveAlert.alertId) : undefined}
                 className="shrink-0 rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm shadow-slate-200/70"
               >
                 看告警详情
@@ -1544,7 +1464,7 @@ export default function App() {
               </div>
               <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 shadow-sm shadow-slate-100/60">
                 <p className="text-[10px] text-slate-400">默认关注</p>
-                <p className="text-xs font-black text-slate-900">{selectedAlert.station}</p>
+                <p className="text-xs font-black text-slate-900">{selectedLiveAlert?.stationName ?? '当前无开放告警'}</p>
               </div>
             </div>
 
@@ -1892,302 +1812,20 @@ export default function App() {
         ) : null}
 
         {showAlertDetail ? (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAlertDetail(false)}
-              className="fixed inset-0 z-[60] bg-sky-950/18 backdrop-blur-sm"
-            />
-
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 top-10 z-[70] overflow-hidden rounded-t-[34px] bg-[linear-gradient(180deg,_rgba(248,250,252,1)_0%,_rgba(255,255,255,1)_24%,_rgba(248,250,252,1)_100%)] shadow-2xl"
-            >
-              <div className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/92 px-5 py-4 backdrop-blur">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-amber-500">Alert Detail</p>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-950">告警详情页</h2>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {pendingAlerts.length} 条待处理 · {processingAlerts.length} 条处理中 · {resolvedAlerts.length} 条已解决
-                    </p>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.92 }}
-                    onClick={() => setShowAlertDetail(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </motion.button>
-                </div>
-
-                <div className="flex gap-2 overflow-x-auto pb-1" data-swipe-ignore="true">
-                  {alerts.map(alert => {
-                    const levelMeta = getLevelMeta(alert.level);
-                    const statusMeta = getStatusMeta(alert.status);
-                    const isActive = alert.id === selectedAlert.id;
-
-                    return (
-                      <button
-                        key={alert.id}
-                        type="button"
-                        onClick={() => setSelectedAlertId(alert.id)}
-                        className={`min-w-[220px] rounded-[24px] border p-3 text-left shadow-sm transition-all ${
-                          isActive
-                            ? 'border-sky-200 bg-[linear-gradient(145deg,_rgba(239,246,255,1),_rgba(219,234,254,1))] text-sky-950 shadow-md shadow-sky-100/80'
-                            : `bg-white ${levelMeta.border} text-slate-900`
-                        }`}
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                            isActive ? 'border border-white bg-white text-sky-700 shadow-sm shadow-sky-100/80' : statusMeta.chip
-                          }`}>
-                            {statusMeta.label}
-                          </span>
-                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                            isActive ? 'border border-sky-100 bg-sky-100 text-sky-700' : levelMeta.chip
-                          }`}>
-                            {levelMeta.label}
-                          </span>
-                        </div>
-                        <p className={`font-bold ${isActive ? 'text-sky-950' : 'text-slate-900'}`}>{alert.title}</p>
-                        <p className={`mt-1 text-xs ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                          {alert.station} · {alert.time}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="h-full overflow-y-auto px-5 pb-36 pt-4">
-                <div className="mb-4 rounded-[30px] border border-sky-100 bg-[linear-gradient(145deg,_rgba(14,165,233,0.95),_rgba(37,99,235,0.92))] p-5 text-white shadow-2xl shadow-sky-200/60">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${getLevelMeta(selectedAlert.level).chip}`}>
-                          {getLevelMeta(selectedAlert.level).label}
-                        </span>
-                        <span className="rounded-full border border-white/20 bg-white/16 px-3 py-1 text-[11px] font-semibold text-white/95">
-                          AI 置信度 {selectedAlert.confidence}%
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-black tracking-tight">{selectedAlert.title}</h3>
-                      <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-200">{selectedAlert.aiSummary}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => syncAlertToCopilot(selectedAlert)}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900"
-                    >
-                      去 AI 中继续追问
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
-                      <p className="text-[11px] text-slate-300">异常时长</p>
-                      <p className="mt-1 text-lg font-black">{selectedAlert.duration}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/20 bg-white/16 p-3">
-                      <p className="text-[11px] text-slate-300">损失评估</p>
-                      <p className="mt-1 text-lg font-black">{selectedAlert.estimatedLoss}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-white/20 bg-white/16 p-3 text-sm text-sky-50/95">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-300">Push Status</p>
-                    <p className="mt-1">{selectedAlert.pushStatus}</p>
-                  </div>
-                </div>
-
-                <div className="mb-4 grid grid-cols-2 gap-3">
-                  {selectedAlert.metrics.map(metric => (
-                    <div
-                      key={metric.label}
-                      className={`rounded-[24px] border p-4 shadow-sm ${getMetricTone(metric.tone)}`}
-                    >
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">{metric.label}</p>
-                      <p className="mt-2 text-2xl font-black">{metric.value}</p>
-                      <p className="mt-1 text-xs opacity-80">{metric.hint}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-800">异常趋势对比</h3>
-                    <span className="text-xs text-slate-400">当前组串 vs 同组基线</span>
-                  </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={selectedAlert.trend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: '16px',
-                          border: '1px solid #e2e8f0',
-                          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
-                        }}
-                      />
-                      <Line type="monotone" dataKey="current" stroke="#f97316" strokeWidth={3} dot={false} />
-                      <Line type="monotone" dataKey="peer" stroke="#0ea5e9" strokeWidth={3} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
-                  <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-800">
-                    <Sparkles className="h-4 w-4 text-sky-500" />
-                    AI 诊断与建议动作
-                  </div>
-                  <div className="space-y-3">
-                    {selectedAlert.causes.map(cause => (
-                      <div key={cause.title} className="rounded-[24px] border border-slate-100 bg-slate-50/90 p-4">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <p className="font-semibold text-slate-900">{cause.title}</p>
-                          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-semibold text-sky-700">
-                            {cause.confidence}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-600">{cause.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-sm font-bold text-emerald-800">
-                      <CheckCircle className="h-4 w-4" />
-                      推荐动作
-                    </div>
-                    <div className="space-y-2">
-                      {selectedAlert.actions.map(action => (
-                        <div key={action} className="flex items-start gap-2 text-sm text-emerald-900">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          <span>{action}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
-                  <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-800">
-                    <Clock className="h-4 w-4 text-sky-500" />
-                    处置时间线
-                  </div>
-                  <div className="space-y-4">
-                    {selectedAlert.timeline.map(item => (
-                      <div key={`${item.time}-${item.title}`} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <span
-                            className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                              item.tone === 'critical'
-                                ? 'bg-rose-500'
-                                : item.tone === 'positive'
-                                ? 'bg-emerald-500'
-                                : 'bg-sky-500'
-                            }`}
-                          />
-                          <span className="mt-1 h-full w-px bg-slate-200 last:hidden" />
-                        </div>
-                        <div className="flex-1 rounded-[22px] bg-slate-50/90 px-4 py-3">
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <p className="font-semibold text-slate-900">{item.title}</p>
-                            <span className="text-xs font-semibold text-slate-400">{item.time}</span>
-                          </div>
-                          <p className="text-sm leading-relaxed text-slate-600">{item.detail}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
-                  <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-800">
-                    <ClipboardList className="h-4 w-4 text-violet-500" />
-                    历史工单命中
-                  </div>
-                  {selectedAlert.tickets.length ? (
-                    <div className="space-y-3">
-                      {selectedAlert.tickets.map(ticket => (
-                        <div key={ticket.id} className="rounded-[24px] border border-slate-100 bg-slate-50/90 p-4">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="font-semibold text-slate-900">{ticket.title}</p>
-                            <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-semibold text-violet-700">
-                              {ticket.hit}
-                            </span>
-                          </div>
-                          <p className="text-xs font-semibold text-slate-400">{ticket.id}</p>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-600">{ticket.result}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-500">
-                      当前未命中高价值历史工单，仅建议继续留档观察。
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-4 rounded-[30px] border border-white/70 bg-white/92 p-5 shadow-xl shadow-slate-200/60">
-                  <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-800">
-                    <FileText className="h-4 w-4 text-sky-500" />
-                    推荐追问
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedAlert.relatedQuestions.map(question => (
-                      <button
-                        key={question}
-                        type="button"
-                        onClick={() => syncAlertToCopilot(selectedAlert, question)}
-                        className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700"
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-slate-200/80 bg-white/92 px-5 py-4 backdrop-blur">
-                  <div className="flex gap-3">
-                    {selectedAlert.status !== 'processing' ? (
-                      <button
-                        type="button"
-                        onClick={() => handleAlertStatus(selectedAlert.id, 'processing')}
-                        className="flex-1 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200"
-                      >
-                        标记处理中
-                      </button>
-                    ) : null}
-                    {selectedAlert.status !== 'resolved' ? (
-                      <button
-                        type="button"
-                        onClick={() => handleAlertStatus(selectedAlert.id, 'resolved')}
-                        className="flex-1 rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200"
-                      >
-                        标记已解决
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => syncAlertToCopilot(selectedAlert)}
-                      className="flex-1 rounded-full border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-sky-700 shadow-lg shadow-sky-100/80"
-                    >
-                      同步到 AI 对话
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
+          <AlertDetailSheet
+            alerts={liveAlertItems}
+            selectedAlertId={selectedAlertId}
+            detail={selectedAlertDetail}
+            trend={selectedAlertTrend}
+            isDetailLoading={isAlertDetailLoading}
+            isTrendLoading={isAlertTrendLoading}
+            detailError={alertDetailError}
+            trendError={alertTrendError}
+            onClose={() => setShowAlertDetail(false)}
+            onRetry={retryAlertDetail}
+            onSelectAlert={setSelectedAlertId}
+            onSyncToCopilot={() => syncAlertToCopilot(selectedAlert)}
+          />
         ) : null}
       </AnimatePresence>
 
