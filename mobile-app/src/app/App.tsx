@@ -1376,9 +1376,6 @@ export default function App() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 rounded-2xl border border-white/16 bg-white/14 p-3 text-sm text-sky-50/95">
-                  首页告警卡片已切到 `GET /api/alerts?status=OPEN`，顶部数字只保留真实告警相关 KPI。
-                </div>
               </div>
             </div>
           </motion.div>
@@ -1423,7 +1420,7 @@ export default function App() {
               <p className="text-3xl font-black text-emerald-500">
                 {isAlertsLoading ? '--' : liveAckedAlertsCount}
               </p>
-              <p className="mt-1 text-xs font-semibold text-emerald-600">acked_at 已回写</p>
+              <p className="mt-1 text-xs font-semibold text-emerald-600">成功处理</p>
             </motion.div>
 
             <motion.button
