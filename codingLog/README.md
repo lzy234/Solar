@@ -1,4 +1,4 @@
-# Coding Log
+﻿# Coding Log
 
 `codingLog` 用来沉淀项目内已经发生过的修复、改动决策和执行约定，目标是让后续查阅、续写和复盘都足够快。
 
@@ -11,7 +11,9 @@ codingLog/
 ├─ AI-WORKFLOW.md
 ├─ feature/
 │  └─ mobile-app/
-└─ bugfix/
+├─ bugfix/
+│  └─ mobile-app/
+└─ docs/
    └─ mobile-app/
 ```
 
@@ -54,6 +56,12 @@ codingLog/
 - [2026-04-25-mobile-app-default-start-page-fix.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-default-start-page-fix.md:1)
 - [2026-04-25-mobile-app-bottom-floating-metrics-removal.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-bottom-floating-metrics-removal.md:1)
 - [2026-04-25-mobile-app-ai-chat-header-compact-polish.md](D:/Project/Solar/codingLog/bugfix/mobile-app/2026-04-25-mobile-app-ai-chat-header-compact-polish.md:1)
+
+### Docs / Mobile App
+
+- [2026-05-10-mobile-app-backend-integration-analysis.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-mobile-app-backend-integration-analysis.md:1)
+- [2026-05-10-alert-feature-mvp-analysis.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-mvp-analysis.md:1)
+- [2026-05-10-alert-feature-mvp-implementation-plan.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-mvp-implementation-plan.md:1)
 
 ## 维护要求
 
