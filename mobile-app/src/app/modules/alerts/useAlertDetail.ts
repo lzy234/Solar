@@ -30,82 +30,113 @@ export function useAlertDetail(selectedAlertId: number | null, enabled = true) {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [trendError, setTrendError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const detailRef = useRef<AlertDetailView | null>(null);
+  const trendRef = useRef<AlertTrendPointView[]>([]);
 
-  const load = useCallback(async () => {
-    abortControllerRef.current?.abort();
+  useEffect(() => {
+    detailRef.current = detail;
+  }, [detail]);
 
-    if (!enabled || selectedAlertId === null) {
-      setDetail(null);
-      setTrend([]);
-      setDetailError(null);
-      setTrendError(null);
-      setIsDetailLoading(false);
-      setIsTrendLoading(false);
-      return;
-    }
+  useEffect(() => {
+    trendRef.current = trend;
+  }, [trend]);
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+  const load = useCallback(
+    async (options: { preserveCurrent?: boolean } = {}) => {
+      abortControllerRef.current?.abort();
 
-    setDetail(null);
-    setTrend([]);
-    setDetailError(null);
-    setTrendError(null);
-    setIsDetailLoading(true);
-    setIsTrendLoading(false);
-
-    try {
-      const detailResponse = await getAlertDetail(selectedAlertId, {
-        signal: controller.signal,
-      });
-
-      if (controller.signal.aborted) {
+      if (!enabled || selectedAlertId === null) {
+        setDetail(null);
+        setTrend([]);
+        setDetailError(null);
+        setTrendError(null);
+        setIsDetailLoading(false);
+        setIsTrendLoading(false);
         return;
       }
 
-      const nextDetail = adaptAlertDetail(detailResponse);
-      setDetail(nextDetail);
-      setIsDetailLoading(false);
-      setIsTrendLoading(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const previousDetail = detailRef.current;
+      const preserveCurrent =
+        Boolean(options.preserveCurrent) && previousDetail?.alertId === selectedAlertId;
+
+      setDetailError(null);
+      setTrendError(null);
+      setIsDetailLoading(true);
+
+      if (!preserveCurrent) {
+        setDetail(null);
+        setTrend([]);
+        setIsTrendLoading(false);
+      } else {
+        setIsTrendLoading(trendRef.current.length > 0);
+      }
 
       try {
-        const trendResponse = await getInverterTrend(
-          nextDetail.inverterSn,
-          {
-            stringIndex: nextDetail.stringIndex,
-          },
-          {
-            signal: controller.signal,
-          },
-        );
+        const detailResponse = await getAlertDetail(selectedAlertId, {
+          signal: controller.signal,
+        });
 
         if (controller.signal.aborted) {
           return;
         }
 
-        setTrend(adaptAlertTrend(trendResponse));
+        const nextDetail = adaptAlertDetail(detailResponse);
+        const canReuseTrend =
+          preserveCurrent &&
+          previousDetail?.inverterSn === nextDetail.inverterSn &&
+          previousDetail?.stringIndex === nextDetail.stringIndex;
+
+        setDetail(nextDetail);
+        setIsDetailLoading(false);
+
+        if (!canReuseTrend) {
+          setTrend([]);
+        }
+
+        setIsTrendLoading(true);
+
+        try {
+          const trendResponse = await getInverterTrend(
+            nextDetail.inverterSn,
+            {
+              stringIndex: nextDetail.stringIndex,
+            },
+            {
+              signal: controller.signal,
+            },
+          );
+
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setTrend(adaptAlertTrend(trendResponse));
+        } catch (error) {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setTrendError(getErrorMessage(error, "趋势数据加载失败"));
+        }
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
 
-        setTrendError(getErrorMessage(error, "趋势数据加载失败"));
-      }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        return;
-      }
+        setDetailError(getErrorMessage(error, "告警详情加载失败"));
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
 
-      setDetailError(getErrorMessage(error, "告警详情加载失败"));
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
+        setIsDetailLoading(false);
+        setIsTrendLoading(false);
       }
-
-      setIsDetailLoading(false);
-      setIsTrendLoading(false);
-    }
-  }, [enabled, selectedAlertId]);
+    },
+    [enabled, selectedAlertId],
+  );
 
   useEffect(() => {
     void load();
@@ -123,7 +154,7 @@ export function useAlertDetail(selectedAlertId: number | null, enabled = true) {
     isLoading: isDetailLoading || isTrendLoading,
     detailError,
     trendError,
-    retry: load,
-    refresh: load,
+    retry: () => load({ preserveCurrent: true }),
+    refresh: () => load({ preserveCurrent: true }),
   };
 }

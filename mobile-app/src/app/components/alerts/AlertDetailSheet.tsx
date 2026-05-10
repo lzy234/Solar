@@ -303,6 +303,11 @@ export function AlertDetailSheet({
                       </span>
                     </p>
                     <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-100">{detail.description}</p>
+                    {detailError ? (
+                      <p className="mt-3 rounded-2xl border border-amber-200/70 bg-amber-50/85 px-3 py-2 text-xs text-amber-900">
+                        当前展示的是上一次成功结果，本次详情刷新失败：{detailError}
+                      </p>
+                    ) : null}
                   </div>
                   {onSyncToCopilot ? (
                     <button

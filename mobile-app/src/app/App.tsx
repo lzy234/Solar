@@ -155,7 +155,7 @@ const capabilityCards = [
   },
   {
     title: '知识库辅助',
-    description: '通过历史工单命中结果解释建议来源，即使现在不接后端也能清楚看到判断依据。',
+    description: '通过历史工单命中结果解释建议来源，方便值班人员快速判断是否需要升级处理。',
     icon: ClipboardList,
     accent: 'from-emerald-400 to-green-600',
   },
@@ -402,8 +402,8 @@ const initialMessages: Message[] = [
     id: 1,
     type: 'ai',
     title: 'OpenClaw 运维副驾已就绪',
-    text: '当前为前端模拟环境，已接入多电站数据、告警流、工单经验与 AI 建议输出。',
-    tags: ['多电站聚合', '前端模拟', '无需后端'],
+    text: '当前已接入多电站告警数据流，可结合站点状态、历史案例和 AI 建议辅助研判。',
+    tags: ['多电站聚合', '告警联动', '运维辅助'],
   },
   {
     id: 2,
@@ -574,7 +574,7 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
         `告警概览：当前 ${pendingCount} 条待处理告警，其中高优先级 ${criticalCount} 条，重点关注 ${alert.station} 的 ${alert.title}。`,
         `建议结论：先推动现场确认 ${alert.device}，同时继续观察临港电站通讯链路，已解决类异常仅做留档。`,
       ],
-      tags: ['日报草稿', '运行概览', '纯前端模拟'],
+      tags: ['日报草稿', '运行概览', '可继续补充'],
       actionLabel: '继续生成工单摘要',
       actionQuestion: '给我一份现场处理步骤',
     };
@@ -631,7 +631,7 @@ const buildAiReply = (question: string, alert: AlertItem, alerts: AlertItem[]): 
   return {
     type: 'ai',
     title: '当前运维总览',
-    text: '基于当前模拟数据，整站运行总体稳定，但仍建议优先跟进高优先级异常。',
+    text: '基于当前已接入的数据，整站运行总体稳定，但仍建议优先跟进高优先级异常。',
     sections: [
       '今日累计发电 94.7 MWh，实时功率 14.3 MW，综合健康分 98。',
       `当前仍有 ${pendingCount} 条待处理告警，最高优先级为 ${alert.station} 的 ${alert.title}。`,
@@ -658,9 +658,14 @@ const SWIPE_INTENT_LOCK_DISTANCE = 14;
 const SWIPE_SWITCH_THRESHOLD_RATIO = 0.18;
 const SWIPE_SWITCH_VELOCITY = 0.5;
 const SWIPE_EDGE_RESISTANCE = 0.35;
+const ALERTS_POLL_INTERVAL_MS = 30000;
+const ALERTS_REFRESH_STALE_MS = 5000;
 
 export default function App() {
   const [currentView, setCurrentView] = useState(0);
+  const [isPageVisible, setIsPageVisible] = useState(
+    () => typeof document === 'undefined' || document.visibilityState === 'visible'
+  );
   const [viewportResetKey, setViewportResetKey] = useState(0);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
@@ -675,6 +680,8 @@ export default function App() {
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const nextMessageIdRef = useRef(3);
   const currentViewRef = useRef(0);
+  const previousViewRef = useRef(0);
+  const previousPageVisibleRef = useRef(isPageVisible);
   const indicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const swipeStateRef = useRef<{
@@ -707,6 +714,7 @@ export default function App() {
     error: liveAlertsError,
     isLoading: isAlertsLoading,
     isRefreshing: isAlertsRefreshing,
+    lastUpdatedAt: lastAlertsUpdatedAt,
     refresh: refreshAlerts,
     retry: retryAlerts,
     actionLoadingById,
@@ -747,6 +755,18 @@ export default function App() {
   }, [currentView]);
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!liveAlertItems.length) {
       if (showAlertDetail) {
         setShowAlertDetail(false);
@@ -760,6 +780,60 @@ export default function App() {
 
     setSelectedAlertId(liveAlertItems[0].alertId);
   }, [liveAlertItems, selectedAlertId, showAlertDetail]);
+
+  useEffect(() => {
+    const previousView = previousViewRef.current;
+    previousViewRef.current = currentView;
+
+    if (
+      currentView !== 0 ||
+      previousView === currentView ||
+      !isPageVisible ||
+      isAlertsLoading ||
+      isAlertsRefreshing
+    ) {
+      return;
+    }
+
+    if (lastAlertsUpdatedAt !== null && Date.now() - lastAlertsUpdatedAt < ALERTS_REFRESH_STALE_MS) {
+      return;
+    }
+
+    void refreshAlerts();
+  }, [currentView, isPageVisible, isAlertsLoading, isAlertsRefreshing, lastAlertsUpdatedAt, refreshAlerts]);
+
+  useEffect(() => {
+    const wasPageVisible = previousPageVisibleRef.current;
+    previousPageVisibleRef.current = isPageVisible;
+
+    if (!isPageVisible || wasPageVisible || currentViewRef.current !== 0 || isAlertsLoading || isAlertsRefreshing) {
+      return;
+    }
+
+    if (lastAlertsUpdatedAt !== null && Date.now() - lastAlertsUpdatedAt < ALERTS_REFRESH_STALE_MS) {
+      return;
+    }
+
+    void refreshAlerts();
+  }, [isPageVisible, isAlertsLoading, isAlertsRefreshing, lastAlertsUpdatedAt, refreshAlerts]);
+
+  useEffect(() => {
+    if (currentView !== 0 || !isPageVisible) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || isAlertsLoading || isAlertsRefreshing) {
+        return;
+      }
+
+      void refreshAlerts();
+    }, ALERTS_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [currentView, isPageVisible, isAlertsLoading, isAlertsRefreshing, refreshAlerts]);
 
   const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
     const viewport = messagesViewportRef.current;

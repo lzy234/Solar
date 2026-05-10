@@ -37,6 +37,7 @@ function getErrorMessage(error: unknown) {
 export function useAlertsList() {
   const [alerts, setAlerts] = useState<AlertListItemView[]>([]);
   const [total, setTotal] = useState(0);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export function useAlertsList() {
 
       setAlerts(response.items.map(adaptAlertListItem));
       setTotal(response.total);
+      setLastUpdatedAt(Date.now());
     } catch (error) {
       if (controller.signal.aborted) {
         return;
@@ -154,6 +156,7 @@ export function useAlertsList() {
   return {
     alerts,
     total,
+    lastUpdatedAt,
     isLoading,
     isRefreshing,
     error,
