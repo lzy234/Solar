@@ -20,16 +20,17 @@
 
 ## 当前状态
 
-- 当前阶段：`Phase 4`
+- 当前阶段：`Phase 5`
 - 总体状态：`进行中`
-- 当前目标：`在 Phase 3 已完成的基础上，接入 ack / close 真实动作与反馈`
-- 下一步：`将详情页底部操作接到 POST /api/alerts/{id}/ack 与 POST /api/alerts/{id}/close`
+- 当前目标：`补齐刷新策略、异常路径与残留清理，完成可演示 MVP 收尾`
+- 下一步：`开始整理 Phase 5 的页面刷新 / 轮询策略与回归项`
 - 最后更新：`2026-05-10`
 
 ## 最近更新记录
 
 | 日期 | 更新人 | 变更内容 | 结果 |
 | --- | --- | --- | --- |
+| 2026-05-10 | Codex | 完成 Phase 4：详情页底部新增“确认接手 / 关闭告警”真实动作，接入 `ack/close` 接口、提交中禁用态、成功/失败 toast 与列表/详情刷新闭环 | 已完成 |
 | 2026-05-10 | Codex | 修复 Phase 3 回归：`App.tsx` 中 `Sparkles`、`AlertTriangle`、`CheckCircle`、`ArrowRight`、`X` 仍被引用但未从 `lucide-react` 导入，导致详情改造后页面运行时报 `ReferenceError` | 已修复 |
 | 2026-05-10 | Codex | 新增 `useAlertDetail`、`AlertDetailSheet`、`AlertStateView`，告警详情与趋势图切到 `GET /api/alerts/{id}` 和 `GET /api/inverters/{sn}/trend`，并收口无真实来源模块 | 已完成 |
 | 2026-05-10 | Codex | 新增 `useAlertsList` 与 `AlertListSection`，首页告警列表切到 `GET /api/alerts?status=OPEN`，补齐 loading/empty/error/retry 与真实 KPI | 已完成 |
@@ -43,7 +44,7 @@
 - [已确认] `GET /api/inverters/{sn}/trend` 的真实 JSON 样例已沉淀到 [2026-05-10-alert-feature-phase0-api-confirmation.md](D:/Project/Solar/codingLog/docs/mobile-app/2026-05-10-alert-feature-phase0-api-confirmation.md:1) 与 [光伏监测系统接入Agent指南.md](D:/Project/Solar/docs/光伏监测系统接入Agent指南.md:418)。
 - [已确认] `ack` 后列表和详情均可使用 `acked_at` 作为“已接手”回写字段；不再设计持久 `processing` 状态。
 - [已确认] `close` 请求体必传，但 `operator_note` 按 OpenAPI schema 推断可空且非必填；第一版可先不做备注输入框。
-- [ ] 需确认是否保留“同步到 AI 对话”按钮作为纯演示入口。
+- [ ] 需确认是否保留“同步到 AI 对话”按钮作为纯演示入口；当前仍保留为演示入口，不影响 Phase 4 闭环。
 
 ## 任务清单
 
@@ -144,20 +145,20 @@
 
 阶段目标：打通告警操作闭环。
 
-- [ ] 将 `标记处理中` 改为 `确认接手`。
-- [ ] 将 `确认接手` 接到 `POST /api/alerts/{id}/ack`。
-- [ ] 将 `标记已解决` 改为 `关闭告警`。
-- [ ] 将 `关闭告警` 接到 `POST /api/alerts/{id}/close`。
-- [ ] 视最终约定决定是否补 `operatorNote` 输入框。
-- [ ] 为 `ack` 增加提交中状态。
-- [ ] 为 `ack` 增加成功提示。
-- [ ] 为 `ack` 增加失败提示。
-- [ ] 为 `close` 增加提交中状态。
-- [ ] 为 `close` 增加成功提示。
-- [ ] 为 `close` 增加失败提示。
-- [ ] `ack` 成功后至少刷新详情，必要时局部刷新列表。
-- [ ] `close` 成功后刷新列表与详情。
-- [ ] 避免连续点击导致重复提交。
+- [x] 将 `标记处理中` 改为 `确认接手`。
+- [x] 将 `确认接手` 接到 `POST /api/alerts/{id}/ack`。
+- [x] 将 `标记已解决` 改为 `关闭告警`。
+- [x] 将 `关闭告警` 接到 `POST /api/alerts/{id}/close`。
+- [x] 视最终约定决定是否补 `operatorNote` 输入框。
+- [x] 为 `ack` 增加提交中状态。
+- [x] 为 `ack` 增加成功提示。
+- [x] 为 `ack` 增加失败提示。
+- [x] 为 `close` 增加提交中状态。
+- [x] 为 `close` 增加成功提示。
+- [x] 为 `close` 增加失败提示。
+- [x] `ack` 成功后至少刷新详情，必要时局部刷新列表。
+- [x] `close` 成功后刷新列表与详情。
+- [x] 避免连续点击导致重复提交。
 
 完成标准：
 
@@ -208,8 +209,8 @@
 - [x] 首页告警列表不再依赖 `alertsSeedData`。
 - [x] 打开任一告警详情时，详情内容来自真实接口。
 - [x] 趋势图来自 `GET /api/inverters/{sn}/trend`。
-- [ ] `ack` 能实际调用后端并给出 UI 反馈。
-- [ ] `close` 能实际调用后端并给出 UI 反馈。
+- [x] `ack` 能实际调用后端并给出 UI 反馈。
+- [x] `close` 能实际调用后端并给出 UI 反馈。
 - [x] 页面具备 `loading`、`empty`、`error`、`retry`。
 - [x] 详情页不再承诺后端未提供的 AI/工单/损失评估等真实能力。
 

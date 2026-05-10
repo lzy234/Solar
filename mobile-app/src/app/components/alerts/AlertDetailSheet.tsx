@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Clock3,
   LineChart as LineChartIcon,
+  LoaderCircle,
   MapPin,
   RefreshCw,
   X,
@@ -24,14 +25,21 @@ interface AlertDetailSheetProps {
   alerts: AlertListItemView[];
   selectedAlertId: number | null;
   detail: AlertDetailView | null;
+  selectedAlert: AlertListItemView | null;
   trend: AlertTrendPointView[];
   isDetailLoading: boolean;
   isTrendLoading: boolean;
   detailError: string | null;
   trendError: string | null;
+  actionLoading?: {
+    ack: boolean;
+    close: boolean;
+  };
   onClose: () => void;
   onRetry: () => void | Promise<void>;
   onSelectAlert: (alertId: number) => void;
+  onAcknowledgeAlert: () => void | Promise<void>;
+  onCloseAlert: () => void | Promise<void>;
   onSyncToCopilot?: () => void;
 }
 
@@ -130,19 +138,30 @@ export function AlertDetailSheet({
   alerts,
   selectedAlertId,
   detail,
+  selectedAlert,
   trend,
   isDetailLoading,
   isTrendLoading,
   detailError,
   trendError,
+  actionLoading,
   onClose,
   onRetry,
   onSelectAlert,
+  onAcknowledgeAlert,
+  onCloseAlert,
   onSyncToCopilot,
 }: AlertDetailSheetProps) {
   const openCount = alerts.filter((alert) => alert.status === "open").length;
   const recoveredCount = alerts.filter((alert) => alert.status === "recovered").length;
   const closedCount = alerts.filter((alert) => alert.status === "closed").length;
+  const activeAlert = detail ?? selectedAlert;
+  const isAckSubmitting = actionLoading?.ack ?? false;
+  const isCloseSubmitting = actionLoading?.close ?? false;
+  const isActionBusy = isAckSubmitting || isCloseSubmitting;
+  const canAck = activeAlert?.actionState.canAck ?? false;
+  const canClose = activeAlert?.actionState.canClose ?? false;
+  const ackButtonLabel = canAck ? "确认接手" : activeAlert?.actionState.isAcked ? "已确认接手" : "确认接手";
 
   return (
     <>
@@ -222,7 +241,7 @@ export function AlertDetailSheet({
           </div>
         </div>
 
-        <div className="h-full overflow-y-auto px-5 pb-32 pt-4">
+        <div className="h-full overflow-y-auto px-5 pb-40 pt-4">
           {isDetailLoading && !detail ? (
             <AlertStateView
               isLoading
@@ -419,23 +438,36 @@ export function AlertDetailSheet({
           ) : null}
 
           <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-slate-200/80 bg-white/92 px-5 py-4 backdrop-blur">
-            <div className="flex gap-3">
+            <div className="space-y-3">
               {onSyncToCopilot ? (
                 <button
                   type="button"
                   onClick={onSyncToCopilot}
-                  className="flex-1 rounded-full border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-sky-700 shadow-lg shadow-sky-100/80"
+                  className="w-full rounded-full border border-sky-100 bg-white px-4 py-3 text-sm font-semibold text-sky-700 shadow-lg shadow-sky-100/80"
                 >
                   同步到 AI 对话
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-200"
-              >
-                关闭
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => void onAcknowledgeAlert()}
+                  disabled={!canAck || isActionBusy}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-sky-700 shadow-lg shadow-sky-100/80 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                >
+                  {isAckSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                  {isAckSubmitting ? "提交中..." : ackButtonLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onCloseAlert()}
+                  disabled={!canClose || isActionBusy}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                >
+                  {isCloseSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                  {isCloseSubmitting ? "提交中..." : "关闭告警"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

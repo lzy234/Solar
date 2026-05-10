@@ -63,7 +63,10 @@ export function useAlertsList() {
     });
   };
 
-  const loadAlerts = async (mode: "initial" | "refresh" = "refresh") => {
+  const loadAlerts = async (
+    mode: "initial" | "refresh" = "refresh",
+    options: { throwOnError?: boolean } = {},
+  ) => {
     abortControllerRef.current?.abort();
 
     const controller = new AbortController();
@@ -99,6 +102,10 @@ export function useAlertsList() {
       }
 
       setError(getErrorMessage(error));
+
+      if (options.throwOnError) {
+        throw error;
+      }
     } finally {
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
@@ -130,7 +137,7 @@ export function useAlertsList() {
 
     try {
       await action();
-      await loadAlerts("refresh");
+      await loadAlerts("refresh", { throwOnError: true });
     } finally {
       setActionLoading(alertId, key, false);
     }

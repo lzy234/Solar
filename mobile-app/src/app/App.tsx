@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
+import { Toaster, toast } from 'sonner';
 import {
   Area,
   AreaChart,
@@ -36,6 +37,11 @@ import { AlertListSection } from '@/app/components/alerts/AlertListSection';
 import { useAlertDetail } from '@/app/modules/alerts/useAlertDetail';
 import { useAlertsList } from '@/app/modules/alerts/useAlertsList';
 import type { AlertListItemView } from '@/app/modules/alerts/types';
+
+const EMPTY_ALERT_ACTION_LOADING = {
+  ack: false,
+  close: false,
+} as const;
 
 type AlertLevel = 'critical' | 'warning' | 'info';
 type AlertStatus = 'pending' | 'processing' | 'resolved';
@@ -439,6 +445,14 @@ const getStationPowerStatusMeta = (status: StationPower['status']) => {
   };
 };
 
+const getActionErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 const buildAlertPreviewStatus = (item: AlertListItemView): AlertStatus => {
   if (item.status === 'closed') {
     return 'resolved';
@@ -695,6 +709,9 @@ export default function App() {
     isRefreshing: isAlertsRefreshing,
     refresh: refreshAlerts,
     retry: retryAlerts,
+    actionLoadingById,
+    acknowledgeAlert,
+    markAlertClosed,
   } = useAlertsList();
   const previewAlerts =
     liveAlertItems.length > 0
@@ -707,6 +724,9 @@ export default function App() {
 
   const selectedAlert = alerts.find(alert => alert.id === selectedAlertId) ?? alerts[0];
   const selectedLiveAlert = liveAlertItems.find(alert => alert.alertId === selectedAlertId) ?? liveAlertItems[0] ?? null;
+  const selectedAlertActionLoading = selectedLiveAlert
+    ? actionLoadingById[selectedLiveAlert.alertId] ?? EMPTY_ALERT_ACTION_LOADING
+    : EMPTY_ALERT_ACTION_LOADING;
   const isTyping = pendingReplyCount > 0;
   const isDetailSheetOpen = showGenerationDetail || showAlertDetail;
   const shouldLoadAlertDetail = showAlertDetail && selectedLiveAlert !== null;
@@ -718,7 +738,9 @@ export default function App() {
     detailError: alertDetailError,
     trendError: alertTrendError,
     retry: retryAlertDetail,
+    refresh: refreshAlertDetail,
   } = useAlertDetail(selectedAlertId, shouldLoadAlertDetail);
+  const selectedAlertActionState = selectedAlertDetail?.actionState ?? selectedLiveAlert?.actionState ?? null;
 
   useEffect(() => {
     currentViewRef.current = currentView;
@@ -1180,6 +1202,33 @@ export default function App() {
     setShowGenerationDetail(false);
     setSelectedAlertId(alertId);
     setShowAlertDetail(true);
+  };
+
+  const handleAcknowledgeAlert = async () => {
+    if (!selectedLiveAlert || !selectedAlertActionState?.canAck || selectedAlertActionLoading.ack || selectedAlertActionLoading.close) {
+      return;
+    }
+
+    try {
+      await acknowledgeAlert(selectedLiveAlert.alertId);
+      await refreshAlertDetail();
+      toast.success('已确认接手告警');
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, '确认接手失败'));
+    }
+  };
+
+  const handleCloseAlert = async () => {
+    if (!selectedLiveAlert || !selectedAlertActionState?.canClose || selectedAlertActionLoading.ack || selectedAlertActionLoading.close) {
+      return;
+    }
+
+    try {
+      await markAlertClosed(selectedLiveAlert.alertId);
+      toast.success('告警已关闭');
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, '关闭告警失败'));
+    }
   };
 
   const syncAlertToCopilot = (alert: AlertItem, question?: string) => {
@@ -1821,19 +1870,24 @@ export default function App() {
             alerts={liveAlertItems}
             selectedAlertId={selectedAlertId}
             detail={selectedAlertDetail}
+            selectedAlert={selectedLiveAlert}
             trend={selectedAlertTrend}
             isDetailLoading={isAlertDetailLoading}
             isTrendLoading={isAlertTrendLoading}
             detailError={alertDetailError}
             trendError={alertTrendError}
+            actionLoading={selectedAlertActionLoading}
             onClose={() => setShowAlertDetail(false)}
             onRetry={retryAlertDetail}
             onSelectAlert={setSelectedAlertId}
+            onAcknowledgeAlert={handleAcknowledgeAlert}
+            onCloseAlert={handleCloseAlert}
             onSyncToCopilot={() => syncAlertToCopilot(selectedAlert)}
           />
         ) : null}
       </AnimatePresence>
 
+      <Toaster position="top-center" richColors closeButton />
     </div>
   );
 }
