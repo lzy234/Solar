@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Solar 智能运维</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="viewport" id="viewport">
+        <!-- 视图 1: 全屏运维信息 -->
+        <section class="view dashboard-view" id="dashboardView">
+            <header style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <p style="color: var(--primary); font-size: 11px; margin: 0; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Real-time Monitor</p>
+                    <h2 style="margin: 4px 0;">电站运维概览</h2>
+                </div>
+                <div style="background: #fff; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted); font-weight: 600;">
+                    2026.04.22
+                </div>
+            </header>
+
+            <div class="full-kpi-grid">
+                <div class="kpi-card-large" style="animation-delay: 0.1s;">
+                    <div class="label">今日发电量</div>
+                    <div class="value">94.7</div>
+                    <div class="status">运行平稳</div>
+                </div>
+                <div class="kpi-card-large" style="border-left: 4px solid var(--primary); animation-delay: 0.2s;">
+                    <div class="label">实时功率 (MW)</div>
+                    <div class="value">14.3</div>
+                    <div class="status" style="color: var(--text-muted);">实时波动</div>
+                </div>
+                <div class="kpi-card-large" style="animation-delay: 0.3s;">
+                    <div class="label">健康得分</div>
+                    <div class="value" style="color: #10b981;">98</div>
+                    <div class="status">极佳</div>
+                </div>
+                <div class="kpi-card-large" style="animation-delay: 0.4s;">
+                    <div class="label">待处理告警</div>
+                    <div class="value" style="color: #f59e0b;">2</div>
+                    <div class="status" style="color: #f59e0b;">需关注</div>
+                </div>
+            </div>
+
+            <div class="chart-placeholder">
+                <div class="chart-bar-mock">
+                    <span style="height: 35%; animation-delay: 0.5s;"></span>
+                    <span style="height: 50%; animation-delay: 0.6s;"></span>
+                    <span style="height: 65%; animation-delay: 0.7s;"></span>
+                    <span style="height: 90%; animation-delay: 0.8s;"></span>
+                    <span style="height: 75%; animation-delay: 0.9s;"></span>
+                    <span style="height: 95%; animation-delay: 1.0s;"></span>
+                    <span style="height: 70%; animation-delay: 1.1s;"></span>
+                </div>
+                <p style="font-weight: 500; color: var(--text-main);">近 7 日发电趋势分析</p>
+            </div>
+            
+            <div style="margin-top: 24px; padding: 20px; background: #fff; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.04);">
+                <h3 style="font-size: 16px; margin: 0 0 14px; display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></span>
+                    实时告警摘要
+                </h3>
+                <div style="font-size: 14px; color: var(--text-muted); line-height: 1.8;">
+                    <p style="margin: 6px 0; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--text-main); font-weight: 600;">•</span> 嘉定南翔电站：组串 3 电流轻微波动
+                    </p>
+                    <p style="margin: 6px 0; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--text-main); font-weight: 600;">•</span> 临港电站：逆变器 A2 通信短暂重连
+                    </p>
+                </div>
+            </div>
+
+            <div style="flex: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 120px;">
+                <div style="color: var(--text-muted); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.6;">
+                    <span>左滑进入 AI 对话助手</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: bounceRight 2s infinite;">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- 视图 2: 对话页面 -->
+        <section class="view chat-view" id="chatView">
+            <div class="compact-header">
+                <div class="compact-kpi">今日发电 <span class="val">94.7</span></div>
+                <div class="compact-kpi">实时功率 <span class="val">14.3</span></div>
+                <div class="compact-kpi">健康得分 <span class="val">98</span></div>
+                <div class="compact-kpi">活跃告警 <span class="val" style="color:#f59e0b">2</span></div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="bubble ai">
+                        您好！我是您的 Solar AI 助手。运维看板已收缩至上方，您可以随时查阅。
+                    </div>
+                    <div class="bubble ai" style="animation-delay: 0.6s;">
+                        您可以问我：“分析一下嘉定电站的告警原因”，或者“帮我生成今日运维报告”。
+                    </div>
+                </div>
+
+                <div class="input-wrap">
+                    <input type="text" id="userInput" placeholder="问问我关于电站的情况..." autocomplete="off">
+                    <button id="sendBtn" class="send-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页面指示点 -->
+    <div class="page-indicator">
+        <div class="dot active" id="dot0"></div>
+        <div class="dot" id="dot1"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
